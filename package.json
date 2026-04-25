@@ -1,0 +1,6 @@
+{
+  "name": "ai-video-pro",
+  "version": "1.0.0",
+  "description": "AI Video Pro Studio",
+  "engines": { "node": "18.x" }
+}
