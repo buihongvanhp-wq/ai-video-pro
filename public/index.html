@@ -794,9 +794,17 @@ async function genCharImage3D(seed) {
   }
 }
 
-function genCharVariation(n) {
-  genCharImage3D(currentSeed + n * 9999);
-  showToast('🔄 Đang tạo biến thể '+n+'...','info');
+async function genCharVariation(n) {
+  const btns = document.querySelectorAll('[onclick^="genCharVariation"]');
+  btns.forEach(b => { b.disabled = true; b.textContent = '⏳ Đang tạo...'; });
+  try {
+    await genCharImage3D(currentSeed + n * 9999);
+  } finally {
+    btns[0].textContent = '🔄 Biến thể 1';
+    btns[1].textContent = '🔄 Biến thể 2';
+    btns[2].textContent = '🔄 Biến thể 3';
+    btns.forEach(b => { b.disabled = false; });
+  }
 }
 
 function saveChar() {
