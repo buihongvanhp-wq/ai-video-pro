@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>AI Video Pro Studio</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#f0f4fa;--s1:#ffffff;--s2:#f5f7fc;--s3:#eaeff8;
+  --b1:#dde3f0;--b2:#c5cfE8;
+  --t1:#1a2340;--t2:#4a5878;--t3:#8a9ab8;
+  --blue:#2563eb;--blue2:#1d4ed8;
+  --green:#16a34a;--yellow:#d97706;--red:#dc2626;--purple:#7c3aed;
+  --grad:linear-gradient(135deg,#2563eb,#7c3aed);
+  --shadow:0 1px 3px rgba(37,99,235,0.06),0 4px 16px rgba(37,99,235,0.04);
+}
+body{font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--t1);min-height:100vh;padding-bottom:80px}
+
+/* Header */
+.hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--b1);position:sticky;top:0;z-index:50;background:rgba(240,244,250,0.96);backdrop-filter:blur(16px);box-shadow:0 1px 0 var(--b1)}
+.hdr-logo{width:34px;height:34px;border-radius:10px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:17px;box-shadow:0 4px 12px rgba(37,99,235,0.3);flex-shrink:0}
+.hdr-name{font-size:16px;font-weight:800;color:var(--t1)}
+.hdr-badge{font-size:10px;background:rgba(37,99,235,0.1);color:var(--blue);border:1px solid rgba(37,99,235,0.2);padding:2px 7px;border-radius:8px;font-weight:700;margin-left:4px}
+.hdr-dots{margin-left:auto;display:flex;gap:5px}
+.hdr-dot{width:8px;height:8px;border-radius:50%;background:var(--b2);transition:all .3s}
+.hdr-dot.on{background:var(--blue);box-shadow:0 0 5px rgba(37,99,235,.4)}
+.hdr-dot.done{background:var(--green)}
+
+/* Top tab bar */
+.topbar{display:flex;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--b1);background:rgba(240,244,250,0.96);position:sticky;top:58px;z-index:49;padding:0 10px;gap:2px}
+.topbar::-webkit-scrollbar{display:none}
+.tbtab{display:flex;align-items:center;gap:5px;padding:10px 12px;border-bottom:2px solid transparent;cursor:pointer;flex-shrink:0;transition:all .2s;font-size:12px;font-weight:600;color:var(--t3)}
+.tbtab.active{border-bottom-color:var(--blue);color:var(--blue)}
+.tbtab.done{color:var(--green)}
+.tbtab.done .tb-num{background:var(--green);border-color:var(--green);color:#fff}
+.tb-num{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:var(--t3);transition:all .3s;flex-shrink:0}
+.tbtab.active .tb-num{border-color:var(--blue);color:var(--blue);background:rgba(37,99,235,0.08)}
+.tb-special .tb-num{background:rgba(124,58,237,0.08);border-color:rgba(124,58,237,0.3);color:var(--purple)}
+.tbtab.tb-special.active{border-bottom-color:var(--purple);color:var(--purple)}
+
+/* Main */
+.main{position:relative;z-index:1;padding:14px 14px 20px;max-width:680px;margin:0 auto}
+
+/* Panes */
+.pane{display:none}.pane.active{display:block}
+
+/* Card */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:18px;margin-bottom:12px;overflow:hidden;box-shadow:var(--shadow)}
+.card-head{padding:15px 17px;display:flex;align-items:center;gap:11px;border-bottom:1px solid var(--b1)}
+.cbadge{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.ctitle{font-size:14px;font-weight:800;color:var(--t1)}
+.csub{font-size:11px;color:var(--t3);margin-top:1px;line-height:1.4}
+.cbody{padding:15px 17px}
+.cfoot{padding:11px 17px;border-top:1px solid var(--b1);display:flex;gap:8px}
+
+/* Inputs */
+.inp{width:100%;background:var(--s2);border:1.5px solid var(--b1);border-radius:11px;padding:10px 13px;font-size:14px;color:var(--t1);outline:none;font-family:inherit;transition:border-color .2s;line-height:1.5}
+.inp:focus{border-color:rgba(37,99,235,.45);box-shadow:0 0 0 3px rgba(37,99,235,.06)}
+.inp::placeholder{color:var(--t3)}
+textarea.inp{resize:none}
+.lbl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 18px;border:none;border-radius:11px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-grad{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(37,99,235,.28)}
+.btn-grad:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.38)}
+.btn-sec{background:var(--s2);border:1.5px solid var(--b1);color:var(--t2)}
+.btn-sec:hover:not(:disabled){background:var(--s3);color:var(--t1)}
+.btn-green{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 4px 14px rgba(22,163,74,.25)}
+.btn-purple{background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;box-shadow:0 4px 14px rgba(124,58,237,.28)}
+.btn-full{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important}
+
+/* ── TAB: Ý TƯỞNG ── */
+.quick-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.qchip{padding:6px 12px;background:var(--s2);border:1.5px solid var(--b1);border-radius:20px;font-size:12px;font-weight:500;color:var(--t2);cursor:pointer;transition:all .2s}
+.qchip:hover{border-color:var(--blue);color:var(--blue);background:rgba(37,99,235,.05)}
+.ideas-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.idea-item{background:var(--s2);border:1.5px solid var(--b1);border-radius:12px;padding:12px 14px;cursor:pointer;transition:all .2s;position:relative}
+.idea-item:hover{border-color:rgba(37,99,235,.35);background:var(--s3)}
+.idea-item.sel{border-color:var(--blue);background:rgba(37,99,235,.06);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.idea-num{font-size:10px;font-weight:700;color:var(--t3);margin-bottom:3px}
+.idea-title{font-size:13px;font-weight:700;color:var(--t1);margin-bottom:2px}
+.idea-desc{font-size:12px;color:var(--t2);line-height:1.5}
+.idea-check{position:absolute;top:12px;right:12px;width:20px;height:20px;border-radius:50%;background:var(--blue);display:none;align-items:center;justify-content:center;font-size:10px;color:#fff}
+.idea-item.sel .idea-check{display:flex}
+
+/* ── TAB: ĐỒNG BỘ NHÂN VẬT ── */
+.sync-info{background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.15);border-radius:12px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:var(--t2);line-height:1.6}
+.sync-info strong{color:var(--purple)}
+.char-count-bar{display:flex;align-items:center;gap:12px;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:12px 15px;margin-bottom:14px;box-shadow:var(--shadow)}
+.char-count-num{font-size:28px;font-weight:800;color:var(--t1);line-height:1}
+.char-count-lbl{font-size:11px;color:var(--t3)}
+.char-count-lbl strong{display:block;font-size:13px;color:var(--green);margin-bottom:1px}
+.char-avatars-row{display:flex;margin-left:auto}
+.cav{width:30px;height:30px;border-radius:50%;border:2px solid #fff;overflow:hidden;background:var(--s3);margin-left:-8px;first-child:margin-left:0;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.cav:first-child{margin-left:0}
+.cav img{width:100%;height:100%;object-fit:cover}
+
+/* 10-slot grid */
+.chars-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px}
+.cslot{aspect-ratio:1;border-radius:13px;border:2px dashed var(--b2);background:var(--s2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.cslot:hover{border-color:var(--blue);background:rgba(37,99,235,.04)}
+.cslot.filled{border-style:solid;border-color:var(--b1);background:var(--s1)}
+.cslot.filled:hover{border-color:var(--blue)}
+.cslot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:11px}
+.cslot-plus{font-size:20px;color:var(--t3)}
+.cslot-lbl{font-size:9px;color:var(--t3);font-weight:600;text-align:center;line-height:1.3}
+.cslot-name{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.65));font-size:9px;font-weight:700;color:#fff;padding:4px 3px 3px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cslot-del{position:absolute;top:3px;right:3px;width:17px;height:17px;border-radius:50%;background:rgba(220,38,38,.85);border:1.5px solid #fff;cursor:pointer;color:#fff;font-size:9px;display:none;align-items:center;justify-content:center;z-index:5;font-weight:800}
+.cslot.filled:hover .cslot-del{display:flex}
+.cslot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;z-index:3}
+.cslot.filled input[type=file]{display:none}
+
+/* Character editor panel */
+.char-editor{background:var(--s1);border:1.5px solid var(--blue);border-radius:16px;padding:16px;margin-bottom:14px;box-shadow:0 0 0 4px rgba(37,99,235,.07);display:none;animation:slideDown .25s ease}
+.char-editor.show{display:block}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.char-editor-top{display:flex;gap:14px;margin-bottom:14px;align-items:flex-start}
+.char-editor-img{width:90px;height:90px;border-radius:13px;object-fit:cover;border:2px solid var(--b1);flex-shrink:0;background:var(--s2)}
+.char-editor-img.placeholder{display:flex;align-items:center;justify-content:center;font-size:32px}
+.char-editor-fields{flex:1;display:flex;flex-direction:column;gap:8px}
+.char-gen-row{display:flex;gap:8px;margin-bottom:10px}
+
+/* Character cards list */
+.char-cards{display:flex;flex-direction:column;gap:8px}
+.char-card{display:flex;align-items:center;gap:12px;background:var(--s1);border:1.5px solid var(--b1);border-radius:13px;padding:10px 13px;cursor:pointer;transition:all .2s;box-shadow:var(--shadow)}
+.char-card:hover{border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.02)}
+.char-card-img{width:48px;height:48px;border-radius:10px;object-fit:cover;border:1.5px solid var(--b1);flex-shrink:0;background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:22px;overflow:hidden}
+.char-card-img img{width:100%;height:100%;object-fit:cover}
+.char-card-name{font-size:14px;font-weight:800;color:var(--t1)}
+.char-card-desc{font-size:11px;color:var(--t3);margin-top:2px;line-height:1.4}
+.char-card-role{font-size:10px;color:var(--blue);background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.15);padding:2px 7px;border-radius:7px;font-weight:700;margin-top:4px;display:inline-block}
+.char-sync-badge{margin-left:auto;font-size:9px;background:rgba(22,163,74,.1);color:var(--green);border:1px solid rgba(22,163,74,.2);padding:3px 8px;border-radius:7px;font-weight:700;white-space:nowrap;flex-shrink:0}
+
+/* ── TAB: KỊCH BẢN ── */
+.char-mini{display:flex;align-items:center;gap:10px;background:var(--s2);border:1px solid var(--b1);border-radius:11px;padding:9px 13px;margin-bottom:12px}
+.char-mini-imgs{display:flex}
+.char-mini-av{width:32px;height:32px;border-radius:8px;border:2px solid #fff;overflow:hidden;background:var(--s3);margin-left:-6px;first-child:margin-left:0;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+.char-mini-av:first-child{margin-left:0}
+.char-mini-av img{width:100%;height:100%;object-fit:cover}
+.scene-list{display:flex;flex-direction:column;gap:9px}
+.scene-card{background:var(--s1);border:1px solid var(--b1);border-radius:13px;overflow:hidden;box-shadow:var(--shadow)}
+.scene-head{display:flex;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--b1);background:var(--s2)}
+.scene-badge{width:22px;height:22px;border-radius:7px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
+.scene-name{font-size:13px;font-weight:700;color:var(--t1);flex:1}
+.scene-dur{font-size:10px;color:var(--yellow);background:rgba(217,119,6,.1);border:1px solid rgba(217,119,6,.2);padding:2px 7px;border-radius:7px;font-weight:600}
+.scene-body{padding:11px 13px;font-size:12px;color:var(--t2);line-height:1.6}
+.scene-narr{font-size:13px;color:var(--t1);font-weight:500;margin-bottom:7px;font-style:italic}
+.scene-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px}
+.stag{font-size:10px;padding:2px 8px;border-radius:7px;font-weight:600}
+.st-s{background:rgba(22,163,74,.08);color:var(--green);border:1px solid rgba(22,163,74,.18)}
+.st-f{background:rgba(124,58,237,.08);color:var(--purple);border:1px solid rgba(124,58,237,.18)}
+.st-c{background:rgba(37,99,235,.08);color:var(--blue);border:1px solid rgba(37,99,235,.18)}
+.scene-prompt{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3);background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:7px 9px;line-height:1.5;word-break:break-all}
+.audio-bar{display:flex;align-items:center;gap:9px;background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:10px 13px;margin-top:12px}
+.audio-btn{width:34px;height:34px;border-radius:50%;background:var(--grad);border:none;cursor:pointer;font-size:14px;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.audio-btn:hover{transform:scale(1.08)}
+.waves{display:flex;align-items:center;gap:2px;height:20px}
+.wv{width:3px;border-radius:2px;background:var(--blue);opacity:.5;height:5px}
+.wv.on{animation:wvanim .7s ease-in-out infinite}
+@keyframes wvanim{0%,100%{height:5px}50%{height:18px}}
+.audio-lbl{font-size:12px;color:var(--t2);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+/* ── TAB: TẠO VIDEO ── */
+.gen-toolbar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.gen-table-wrap{border:1px solid var(--b1);border-radius:13px;overflow:hidden}
+.gen-thead{display:grid;grid-template-columns:26px 52px 78px 1fr 88px;gap:6px;padding:8px 12px;background:var(--s2);border-bottom:1px solid var(--b1)}
+.gen-th{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px}
+.gen-row{display:grid;grid-template-columns:26px 52px 78px 1fr 88px;gap:6px;padding:10px 12px;border-bottom:1px solid var(--b1);align-items:center;transition:background .2s}
+.gen-row:hover{background:rgba(37,99,235,.03)}
+.gen-row:last-child{border-bottom:none}
+.stt{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--t1)}
+.spill{font-size:9px;font-weight:700;padding:3px 7px;border-radius:7px}
+.sp-w{background:var(--s2);color:var(--t3);border:1px solid var(--b2)}
+.sp-r{background:rgba(37,99,235,.1);color:var(--blue);border:1px solid rgba(37,99,235,.25)}
+.sp-d{background:rgba(22,163,74,.1);color:var(--green);border:1px solid rgba(22,163,74,.25)}
+.sp-e{background:rgba(220,38,38,.1);color:var(--red);border:1px solid rgba(220,38,38,.25)}
+.pbar{height:5px;background:var(--s2);border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:var(--grad);border-radius:3px;transition:width .5s ease;width:0%}
+.ppct{font-size:9px;color:var(--t3);text-align:right;margin-top:2px}
+.gen-img-wrap{grid-column:1/-1;padding:0 2px 8px}
+.scene-result-img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:9px;border:1px solid var(--b1)}
+
+/* Style chips */
+.style-chip{padding:5px 11px;background:var(--s2);border:1.5px solid var(--b1);border-radius:20px;font-size:11px;font-weight:600;color:var(--t2);cursor:pointer;transition:all .2s;white-space:nowrap}
+.style-chip:hover{border-color:var(--purple);color:var(--purple)}
+.style-chip.active{background:rgba(124,58,237,.1);border-color:var(--purple);color:var(--purple)}
+
+/* Spinner */
+.spin{width:14px;height:14px;border:2px solid rgba(37,99,235,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(70px);background:#fff;border:1px solid var(--b1);border-radius:12px;padding:10px 17px;font-size:13px;font-weight:600;z-index:200;box-shadow:0 8px 30px rgba(0,0,0,.12);transition:transform .3s;white-space:nowrap;color:var(--t1)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:rgba(22,163,74,.35);color:var(--green)}
+.toast.info{border-color:rgba(37,99,235,.3);color:var(--blue)}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-logo">🎬</div>
+  <div><span class="hdr-name">AI Video Pro</span><span class="hdr-badge">Studio</span></div>
+  <div class="hdr-dots">
+    <div class="hdr-dot on" id="hd0"></div>
+    <div class="hdr-dot" id="hd1"></div>
+    <div class="hdr-dot" id="hd2"></div>
+    <div class="hdr-dot" id="hd3"></div>
+  </div>
+</div>
+
+<!-- Tab bar -->
+<div class="topbar">
+  <div class="tbtab tb-special active" id="tab-chars" onclick="showTab('chars')">
+    <div class="tb-num">👥</div>Đồng bộ NV
+  </div>
+  <div class="tbtab" id="tab-ideas" onclick="showTab('ideas')">
+    <div class="tb-num" id="tn0">1</div>💡 Ý tưởng
+  </div>
+  <div class="tbtab" id="tab-script" onclick="showTab('script')">
+    <div class="tb-num" id="tn2">3</div>📝 Kịch bản
+  </div>
+  <div class="tbtab" id="tab-gen" onclick="showTab('gen')">
+    <div class="tb-num" id="tn3">4</div>🎬 Tạo video
+  </div>
+</div>
+
+<div class="main">
+
+<!-- ═══ PANE: ĐỒNG BỘ NHÂN VẬT ═══ -->
+<div class="pane active" id="pane-chars">
+  <div class="card">
+    <div class="card-head">
+      <div class="cbadge" style="background:linear-gradient(135deg,#7c3aed,#4f46e5);font-size:16px">👥</div>
+      <div>
+        <div class="ctitle">Đồng bộ nhân vật</div>
+        <div class="csub">Tạo / tải ảnh nhân vật 3D · AI giữ nhất quán xuyên suốt series · Tối đa 10 nhân vật</div>
+      </div>
+    </div>
+    <div class="cbody">
+
+      <!-- Count bar -->
+      <div class="char-count-bar">
+        <div>
+          <div class="char-count-num" id="charCountNum">0</div>
+          <div class="char-count-lbl">
+            <strong id="charCountStatus">Chưa có nhân vật</strong>
+            nhân vật đã đồng bộ
+          </div>
+        </div>
+        <div class="char-avatars-row" id="charAvatarsRow"></div>
+        <div style="font-size:10px;background:rgba(37,99,235,.08);color:var(--blue);border:1px solid rgba(37,99,235,.2);padding:3px 9px;border-radius:7px;font-weight:700;white-space:nowrap" id="charSyncBadge">0/10 slots</div>
+      </div>
+
+      <!-- Info -->
+      <div class="sync-info">
+        <strong>💡 Cách hoạt động:</strong> Tải ảnh hoặc tạo ảnh 3D bằng AI → đặt tên & mô tả → AI tự động thêm vào prompt mỗi cảnh để giữ nhất quán xuyên suốt series.
+      </div>
+
+      <!-- 10-slot grid -->
+      <div class="lbl" style="margin-bottom:8px">Nhân vật trong series (nhấn ô để thêm)</div>
+      <div class="chars-grid" id="charsGrid"></div>
+
+      <!-- Quick create button -->
+      <button class="btn btn-grad btn-full" onclick="openNewEditor()" style="margin-bottom:14px;font-size:14px;padding:13px">
+        ➕ Tạo nhân vật mới
+      </button>
+
+      <!-- Character creator panel - always accessible -->
+      <div class="char-editor" id="charEditor">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div style="font-size:14px;font-weight:800;color:var(--t1)" id="charEditorTitle">✨ Tạo nhân vật mới</div>
+          <button onclick="closeEditor()" style="background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:4px 10px;font-size:12px;color:var(--t2);cursor:pointer">✕ Đóng</button>
+        </div>
+
+        <!-- Name + Role row -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+          <div>
+            <div class="lbl">Tên nhân vật *</div>
+            <input class="inp" id="edName" placeholder="VD: Kama, Max...">
+          </div>
+          <div>
+            <div class="lbl">Vai trò</div>
+            <input class="inp" id="edRole" placeholder="Nhân vật chính...">
+          </div>
+        </div>
+
+        <!-- Appearance -->
+        <div style="margin-bottom:12px">
+          <div class="lbl">Mô tả ngoại hình *</div>
+          <textarea class="inp" id="edAppearance" rows="3"
+            placeholder="VD: chú chó 3D màu vàng dễ thương, mắt to tròn đen láy, đeo tạp dề xanh lá, tai cụp xuống, đuôi vẫy liên tục, phong cách Pixar..."></textarea>
+        </div>
+
+        <!-- AI Generate section -->
+        <div style="background:linear-gradient(135deg,rgba(124,58,237,.06),rgba(37,99,235,.06));border:1.5px solid rgba(124,58,237,.2);border-radius:14px;padding:14px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🎨</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--t1)">Tạo ảnh 3D bằng AI</div>
+              <div style="font-size:10px;color:var(--t3)">Pollinations.ai · Miễn phí · Không cần key</div>
+            </div>
+          </div>
+
+          <!-- Style selector -->
+          <div style="margin-bottom:8px">
+            <div class="lbl" style="margin-bottom:5px">Phong cách 3D</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap" id="styleChips">
+              <span class="style-chip active" onclick="setStyleChip(this,'3D Pixar cartoon')">🎬 Pixar</span>
+              <span class="style-chip" onclick="setStyleChip(this,'3D anime style')">✨ Anime 3D</span>
+              <span class="style-chip" onclick="setStyleChip(this,'3D realistic cartoon')">📷 Realistic</span>
+              <span class="style-chip" onclick="setStyleChip(this,'chibi 3D cute')">🌸 Chibi</span>
+              <span class="style-chip" onclick="setStyleChip(this,'3D clay animation')">🧸 Clay</span>
+            </div>
+          </div>
+
+          <!-- Auto-fill prompt button -->
+          <button class="btn btn-sec btn-full" onclick="autoFillPrompt()" style="margin-bottom:8px;font-size:12px">
+            ⚡ Tự động điền prompt từ mô tả
+          </button>
+
+          <textarea class="inp" id="edImgPrompt" rows="3"
+            placeholder="Prompt tiếng Anh cho AI: VD: cute yellow 3D Pixar dog, big round black eyes, wearing green apron, floppy ears, wagging tail, white background, full body, high quality render..."
+            style="margin-bottom:8px"></textarea>
+
+          <!-- Preview & Generate -->
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-purple" style="flex:1" onclick="genCharImage3D()" id="genImgBtn">
+              <span id="genImgBtnTxt">🎨 Tạo ảnh ngay</span>
+            </button>
+            <button class="btn btn-sec" style="position:relative;overflow:hidden;flex-shrink:0" title="Tải ảnh có sẵn">
+              📁
+              <input type="file" accept="image/*" onchange="handleEditorImgUpload(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer">
+            </button>
+          </div>
+        </div>
+
+        <!-- Image result preview -->
+        <div id="charImgPreviewWrap" style="display:none;margin-bottom:12px">
+          <div class="lbl" style="margin-bottom:6px">Xem trước nhân vật</div>
+          <div style="display:flex;gap:12px;align-items:center;background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:12px">
+            <img id="charEditorImg" src="" alt="" style="width:90px;height:90px;border-radius:11px;object-fit:cover;border:2px solid var(--b1);flex-shrink:0">
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:800;color:var(--t1)" id="charPreviewName">-</div>
+              <div style="font-size:11px;color:var(--t3);margin-top:3px" id="charPreviewRole"></div>
+              <div style="font-size:11px;color:var(--t2);margin-top:4px;line-height:1.4" id="charPreviewDesc">-</div>
+            </div>
+          </div>
+          <!-- Generate variations -->
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <button class="btn btn-sec" style="flex:1;font-size:11px" onclick="genCharVariation(1)">🔄 Biến thể 1</button>
+            <button class="btn btn-sec" style="flex:1;font-size:11px" onclick="genCharVariation(2)">🔄 Biến thể 2</button>
+            <button class="btn btn-sec" style="flex:1;font-size:11px" onclick="genCharVariation(3)">🔄 Biến thể 3</button>
+          </div>
+        </div>
+
+        <!-- Save/Delete -->
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-grad" style="flex:1;font-size:14px;padding:12px" onclick="saveChar()">✓ Lưu nhân vật</button>
+          <button class="btn" style="background:rgba(220,38,38,.08);color:var(--red);border:1.5px solid rgba(220,38,38,.2);display:none;padding:12px 16px" id="deleteCharBtn" onclick="deleteCurrentChar()">🗑</button>
+        </div>
+      </div>
+
+      <!-- Saved characters list -->
+      <div id="charCardsList" style="display:none;margin-top:4px">
+        <div class="lbl" style="margin-bottom:8px">Nhân vật trong series</div>
+        <div class="char-cards" id="charCardsItems"></div>
+      </div>
+
+    </div>
+    <div class="cfoot">
+      <button class="btn btn-grad btn-full" onclick="showTab('ideas')">Tiếp theo: Tạo ý tưởng →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANE: Ý TƯỞNG ═══ -->
+<div class="pane" id="pane-ideas">
+  <div class="card">
+    <div class="card-head">
+      <div class="cbadge" style="background:linear-gradient(135deg,#2563eb,#7c3aed)">1</div>
+      <div>
+        <div class="ctitle">💡 Ý tưởng video</div>
+        <div class="csub">Nhập chủ đề → AI gợi ý 5 ý tưởng độc đáo</div>
+      </div>
+    </div>
+    <div class="cbody">
+      <!-- Show synced chars if any -->
+      <div id="ideasCharBar" style="display:none;margin-bottom:12px">
+        <div class="char-mini">
+          <div class="char-mini-imgs" id="ideasCharImgs"></div>
+          <div style="font-size:12px;font-weight:600;color:var(--t2);margin-left:6px" id="ideasCharNames"></div>
+          <span style="margin-left:auto;font-size:10px;background:rgba(22,163,74,.08);color:var(--green);border:1px solid rgba(22,163,74,.2);padding:2px 8px;border-radius:7px;font-weight:700">Đã đồng bộ</span>
+        </div>
+      </div>
+
+      <div class="lbl">Chủ đề của bạn</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <input class="inp" id="topicInput" placeholder="VD: Kama học nấu ăn, phiêu lưu rừng sâu..." style="flex:1">
+        <button class="btn btn-grad" onclick="generateIdeas()" id="ideaBtn">
+          <span id="ideaBtnTxt">✨ Tạo</span>
+        </button>
+      </div>
+      <div class="quick-chips">
+        <span class="qchip" onclick="setTopic('chú chó học nấu ăn trong bếp')">🐶 chó nấu ăn</span>
+        <span class="qchip" onclick="setTopic('bé gái phiêu lưu rừng kỳ diệu')">🌿 rừng kỳ diệu</span>
+        <span class="qchip" onclick="setTopic('robot học làm bánh ngọt')">🤖 robot bánh</span>
+        <span class="qchip" onclick="setTopic('mèo thám tử phá án bí ẩn')">🐱 mèo thám tử</span>
+      </div>
+      <div id="ideasList" class="ideas-list"></div>
+    </div>
+    <div class="cfoot" id="ideas-foot" style="display:none">
+      <button class="btn btn-grad btn-full" onclick="showTab('script')">Tiếp theo: Viết kịch bản →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANE: KỊCH BẢN ═══ -->
+<div class="pane" id="pane-script">
+  <div class="card">
+    <div class="card-head">
+      <div class="cbadge" style="background:linear-gradient(135deg,#16a34a,#2563eb)">3</div>
+      <div>
+        <div class="ctitle">📝 Kịch bản chi tiết</div>
+        <div class="csub">5 cảnh · Dialogue · Âm thanh · Hiệu ứng · Camera</div>
+      </div>
+    </div>
+    <div class="cbody">
+      <div class="char-mini" id="scriptCharBar" style="display:none">
+        <div class="char-mini-imgs" id="scriptCharImgs"></div>
+        <div style="font-size:12px;font-weight:600;color:var(--t2);margin-left:6px" id="scriptCharNames">-</div>
+        <span style="margin-left:auto;font-size:10px;background:rgba(22,163,74,.08);color:var(--green);border:1px solid rgba(22,163,74,.2);padding:2px 8px;border-radius:7px;font-weight:700">Đồng bộ ✓</span>
+      </div>
+      <div id="scriptLoading" style="display:none;text-align:center;padding:24px;color:var(--t2);font-size:13px">
+        <div class="spin" style="width:24px;height:24px;border-width:3px"></div>
+        <div style="margin-top:10px;font-weight:600">Đang viết kịch bản...</div>
+      </div>
+      <div id="sceneList" class="scene-list"></div>
+      <div id="audioBarWrap" style="display:none">
+        <div style="margin-bottom:8px">
+          <div class="lbl">ElevenLabs API Key (tùy chọn — giọng thật)</div>
+          <input class="inp" id="elevenKeyInput" type="password" placeholder="Nhập key để có giọng thật, bỏ qua để dùng giọng browser...">
+        </div>
+        <div class="audio-bar">
+          <button class="audio-btn" onclick="toggleAudio()">▶</button>
+          <div class="waves" id="wavesEl">
+            <div class="wv"></div><div class="wv"></div><div class="wv"></div>
+            <div class="wv"></div><div class="wv"></div><div class="wv"></div>
+          </div>
+          <div class="audio-lbl" id="audioLbl">Nhấn ▶ để nghe narration</div>
+        </div>
+      </div>
+    </div>
+    <div class="cfoot">
+      <button class="btn btn-sec" onclick="showTab('ideas')">← Quay lại</button>
+      <button class="btn btn-grad" style="flex:1" onclick="generateScript()" id="scriptBtn">
+        <span id="scriptBtnTxt">✍️ Viết kịch bản</span>
+      </button>
+      <button class="btn btn-green" id="toGenBtn" style="display:none" onclick="showTab('gen')">Tạo video →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PANE: TẠO VIDEO ═══ -->
+<div class="pane" id="pane-gen">
+  <div class="card">
+    <div class="card-head">
+      <div class="cbadge" style="background:linear-gradient(135deg,#d97706,#dc2626)">4</div>
+      <div>
+        <div class="ctitle">🎬 Tạo video từ prompt</div>
+        <div class="csub">Render từng cảnh · Pollinations.ai · Xem trước kết quả</div>
+      </div>
+    </div>
+    <div class="cbody" style="padding:0">
+      <div class="gen-thead">
+        <div class="gen-th"></div>
+        <div class="gen-th">STT</div>
+        <div class="gen-th">Trạng thái</div>
+        <div class="gen-th">Prompt</div>
+        <div class="gen-th">Tiến độ</div>
+      </div>
+      <div id="genTableBody"></div>
+    </div>
+    <div class="cfoot">
+      <button class="btn btn-sec" onclick="showTab('script')">← Quay lại</button>
+      <button class="btn btn-grad" style="flex:1" onclick="startGen()" id="startGenBtn">
+        <span id="startGenTxt">🚀 Bắt đầu tạo video</span>
+      </button>
+    </div>
+  </div>
+  <!-- Results -->
+  <div id="genResults" style="display:none">
+    <div class="card">
+      <div class="card-head">
+        <div class="cbadge" style="background:var(--green)">✓</div>
+        <div>
+          <div class="ctitle">✅ Kịch bản hoàn chỉnh</div>
+          <div class="csub">Copy prompt từng cảnh → tạo ảnh → ghép video</div>
+        </div>
+      </div>
+      <div class="cbody">
+        <!-- Action guide -->
+        <div style="background:linear-gradient(135deg,rgba(37,99,235,.06),rgba(22,163,74,.06));border:1px solid rgba(37,99,235,.15);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:8px">🚀 Bước tiếp theo để tạo video thật:</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:11px;color:var(--t2)">
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="background:var(--blue);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;margin-top:1px">1</span><span>Nhấn <strong style="color:var(--t1)">📋 Copy prompt</strong> của từng cảnh</span></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="background:var(--purple);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;margin-top:1px">2</span><span>Dán vào <strong style="color:var(--t1)">Bing Image Creator</strong> hoặc <strong style="color:var(--t1)">Ideogram.ai</strong> → tải ảnh về</span></div>
+            <div style="display:flex;gap:8px;align-items:flex-start"><span style="background:var(--green);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;margin-top:1px">3</span><span>Mở <strong style="color:var(--t1)">CapCut</strong> → import ảnh + audio → ghép video</span></div>
+          </div>
+        </div>
+        <!-- Quick links -->
+        <div style="display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap">
+          <a href="https://www.bing.com/images/create" target="_blank" class="btn btn-sec" style="flex:1;font-size:11px;text-decoration:none">🖼 Bing Creator</a>
+          <a href="https://ideogram.ai" target="_blank" class="btn btn-sec" style="flex:1;font-size:11px;text-decoration:none">🎨 Ideogram</a>
+          <a href="https://capcut.com" target="_blank" class="btn btn-grad" style="flex:1;font-size:11px;text-decoration:none">🎬 CapCut</a>
+        </div>
+        <button class="btn btn-sec btn-full" onclick="copyPrompts()" style="margin-bottom:14px">📋 Copy tất cả prompts (5 cảnh)</button>
+        <div id="resultImages"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+<div class="toast" id="toast"></div>
+
+<script>
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+// ═══ STATE ═══
+let CHARS = [];       // [{id,name,role,appearance,imgUrl,imgDataUrl}]
+let editIdx = null;   // which char slot is being edited
+let IDEAS = [];
+let selectedIdea = null;
+let SCENES = [];
+let narText = '';
+let audioPlaying = false;
+let stepsDone = { chars:false, ideas:false, script:false };
+
+// ═══ TAB NAVIGATION ═══
+function showTab(tab) {
+  ['chars','ideas','script','gen'].forEach(t => {
+    document.getElementById('pane-'+t).className = 'pane'+(t===tab?' active':'');
+    const el = document.getElementById('tab-'+t);
+    if (el) el.className = el.className.replace(' active','') + (t===tab?' active':'');
+  });
+  if (tab==='ideas') syncIdeasCharBar();
+  if (tab==='script') syncScriptCharBar();
+  if (tab==='gen') prefillGenTable();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ═══ CHARACTER SYNC ═══
+const MAX_CHARS = 10;
+
+function initGrid() {
+  const grid = document.getElementById('charsGrid');
+  grid.innerHTML = '';
+  CHARS.forEach((c,i) => {
+    const d = document.createElement('div');
+    d.className = 'cslot filled';
+    d.id = 'cs'+i;
+    d.innerHTML = `
+      ${c.imgUrl ? `<img src="${c.imgUrl}" alt="${c.name}">` : `<div style="font-size:28px;position:absolute">${charEmoji(c)}</div>`}
+      <div class="cslot-name">${c.name||'?'}</div>
+      <div class="cslot-del" onclick="deleteChar(${i},event)">✕</div>`;
+    d.onclick = () => openEditor(i);
+    grid.appendChild(d);
+  });
+  const rem = MAX_CHARS - CHARS.length;
+  for (let i=0;i<rem;i++) {
+    const idx = CHARS.length+i;
+    const d = document.createElement('div');
+    d.className = 'cslot';
+    d.innerHTML = `<div class="cslot-plus">＋</div><div class="cslot-lbl">Thêm<br>nhân vật</div><input type="file" accept="image/*" onchange="handleSlotUpload(${idx},this)">`;
+    d.onclick = () => openNewEditor();
+    grid.appendChild(d);
+  }
+  updateCountBar();
+}
+
+function charEmoji(c) {
+  const n = (c.name||'').toLowerCase();
+  if (n.includes('chó')||n.includes('dog')) return '🐶';
+  if (n.includes('mèo')||n.includes('cat')) return '🐱';
+  if (n.includes('robot')) return '🤖';
+  if (n.includes('bé')||n.includes('girl')) return '👧';
+  return '🐾';
+}
+
+function updateCountBar() {
+  const n = CHARS.length;
+  document.getElementById('charCountNum').textContent = n;
+  document.getElementById('charCountStatus').textContent = n===0 ? 'Chưa có nhân vật' : n===1 ? '1 nhân vật' : n+' nhân vật';
+  document.getElementById('charSyncBadge').textContent = n+'/10 slots';
+  // Avatars
+  const row = document.getElementById('charAvatarsRow');
+  row.innerHTML = CHARS.slice(0,5).map(c => `<div class="cav">${c.imgUrl?`<img src="${c.imgUrl}">`:`<div style="font-size:13px;display:flex;align-items:center;justify-content:center;height:100%">${charEmoji(c)}</div>`}</div>`).join('');
+}
+
+function handleSlotUpload(idx, input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => openNewEditor(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+let currentStyle = '3D Pixar cartoon';
+let currentSeed = Date.now();
+
+function setStyleChip(el, style) {
+  currentStyle = style;
+  document.querySelectorAll('.style-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function showPromptPanel(prompt) {
+  let panel = document.getElementById('promptCopyPanel');
+  if (!panel) {
+    panel = document.createElement('div');
+    panel.id = 'promptCopyPanel';
+    panel.style.cssText = 'background:linear-gradient(135deg,rgba(37,99,235,.06),rgba(124,58,237,.06));border:1.5px solid rgba(37,99,235,.2);border-radius:13px;padding:14px;margin-bottom:12px';
+    const wrap = document.getElementById('charImgPreviewWrap');
+    wrap.parentNode.insertBefore(panel, wrap.nextSibling);
+  }
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <div style="width:26px;height:26px;border-radius:7px;background:var(--grad);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">✨</div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:var(--t1)">Prompt để tạo ảnh nhân vật 3D</div>
+        <div style="font-size:10px;color:var(--t3)">Copy prompt → dán vào tool bên dưới</div>
+      </div>
+    </div>
+    <div style="background:var(--s1);border:1px solid var(--b1);border-radius:9px;padding:10px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--t2);line-height:1.6;margin-bottom:10px;word-break:break-all">${prompt}</div>
+    <div style="display:flex;gap:7px;margin-bottom:10px">
+      <button class="btn btn-grad" style="flex:1;font-size:12px" onclick="copyPromptText()">📋 Copy prompt</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:7px">Dán vào công cụ tạo ảnh miễn phí:</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <a href="https://www.bing.com/images/create" target="_blank" style="display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:9px 12px;text-decoration:none">
+        <div style="width:28px;height:28px;border-radius:7px;background:#0078d4;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🖼</div>
+        <div><div style="font-size:12px;font-weight:700;color:var(--t1)">Bing Image Creator</div><div style="font-size:10px;color:var(--t3)">Microsoft · Miễn phí · Chất lượng cao</div></div>
+        <span style="margin-left:auto;font-size:11px;color:var(--blue);font-weight:600">Mở →</span>
+      </a>
+      <a href="https://ideogram.ai" target="_blank" style="display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:9px 12px;text-decoration:none">
+        <div style="width:28px;height:28px;border-radius:7px;background:#6366f1;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🎨</div>
+        <div><div style="font-size:12px;font-weight:700;color:var(--t1)">Ideogram.ai</div><div style="font-size:10px;color:var(--t3)">Free · 3D style rất đẹp · Không cần key</div></div>
+        <span style="margin-left:auto;font-size:11px;color:var(--blue);font-weight:600">Mở →</span>
+      </a>
+      <a href="https://app.leonardo.ai" target="_blank" style="display:flex;align-items:center;gap:10px;background:var(--s1);border:1px solid var(--b1);border-radius:10px;padding:9px 12px;text-decoration:none">
+        <div style="width:28px;height:28px;border-radius:7px;background:#7c3aed;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">⚡</div>
+        <div><div style="font-size:12px;font-weight:700;color:var(--t1)">Leonardo.ai</div><div style="font-size:10px;color:var(--t3)">Free tier · 3D Pixar style cực đẹp</div></div>
+        <span style="margin-left:auto;font-size:11px;color:var(--blue);font-weight:600">Mở →</span>
+      </a>
+    </div>`;
+  panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function copyPromptText() {
+  const prompt = document.getElementById('edImgPrompt').value.trim();
+  navigator.clipboard?.writeText(prompt).then(()=>showToast('📋 Đã copy prompt!','ok'))
+    .catch(()=>{const e=document.createElement('textarea');e.value=prompt;document.body.appendChild(e);e.select();document.execCommand('copy');document.body.removeChild(e);showToast('📋 Đã copy!','ok');});
+}
+
+function autoFillPrompt() {
+  const name = document.getElementById('edName').value.trim();
+  const appearance = document.getElementById('edAppearance').value.trim();
+  if (!appearance) { showToast('Nhập mô tả ngoại hình trước!','info'); return; }
+  // Translate common Vietnamese to English keywords
+  const trans = {
+    'chú chó':'cute dog','con mèo':'cat','bé gái':'little girl','cô gái':'girl',
+    'chàng trai':'boy','robot':'robot','thỏ':'rabbit','gấu':'bear','cáo':'fox',
+    'màu vàng':'yellow','màu trắng':'white','màu nâu':'brown','màu đen':'black',
+    'màu xanh':'blue','mắt to':'big eyes','mắt tròn':'round eyes',
+    'tai dài':'long ears','tai cụp':'floppy ears','đuôi vẫy':'wagging tail',
+    'tạp dề':'apron','kính':'glasses','nón':'hat','áo':'shirt',
+    'dễ thương':'cute','vui vẻ':'cheerful','hiền lành':'gentle',
+  };
+  let prompt = appearance;
+  Object.entries(trans).forEach(([vi, en]) => {
+    prompt = prompt.replace(new RegExp(vi, 'gi'), en);
+  });
+  const fullPrompt = `${name ? name+', ' : ''}${prompt}, ${currentStyle}, isolated on pure white background, full body character, high quality 3D render, centered, no shadow, no background`;
+  document.getElementById('edImgPrompt').value = fullPrompt;
+  showToast('⚡ Đã điền prompt!','info');
+}
+
+function openNewEditor(imgDataUrl) {
+  editIdx = null;
+  document.getElementById('charEditorTitle').textContent = '✨ Tạo nhân vật mới';
+  document.getElementById('edName').value='';
+  document.getElementById('edRole').value='';
+  document.getElementById('edAppearance').value='';
+  document.getElementById('edImgPrompt').value='';
+  document.getElementById('charImgPreviewWrap').style.display='none';
+  document.getElementById('deleteCharBtn').style.display='none';
+  if (imgDataUrl) showImgPreview(imgDataUrl);
+  document.getElementById('charEditor').classList.add('show');
+  document.getElementById('charEditor').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function openEditor(idx) {
+  editIdx = idx;
+  const c = CHARS[idx];
+  document.getElementById('charEditorTitle').textContent = '✏️ Chỉnh sửa: '+c.name;
+  document.getElementById('edName').value = c.name||'';
+  document.getElementById('edRole').value = c.role||'';
+  document.getElementById('edAppearance').value = c.appearance||'';
+  document.getElementById('edImgPrompt').value = '';
+  document.getElementById('deleteCharBtn').style.display='flex';
+  if (c.imgUrl) showImgPreview(c.imgUrl);
+  else document.getElementById('charImgPreviewWrap').style.display='none';
+  document.getElementById('charEditor').classList.add('show');
+  document.getElementById('charEditor').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function showImgPreview(url) {
+  document.getElementById('imgLoadingDiv')?.remove();
+  const img = document.getElementById('charEditorImg');
+  img.src = url;
+  img.style.display = 'block';
+  document.getElementById('charImgPreviewWrap').style.display = 'block';
+  updatePreviewInfo();
+}
+
+function updatePreviewInfo() {
+  const name = document.getElementById('edName').value.trim() || '(chưa đặt tên)';
+  const role = document.getElementById('edRole').value.trim();
+  const desc = document.getElementById('edAppearance').value.trim();
+  document.getElementById('charPreviewName').textContent = name;
+  document.getElementById('charPreviewRole').textContent = role ? '🎭 '+role : '';
+  document.getElementById('charPreviewDesc').textContent = desc ? desc.slice(0,80)+(desc.length>80?'...':'') : '';
+}
+
+// Live update preview info as user types
+['edName','edRole','edAppearance'].forEach(id => {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', updatePreviewInfo);
+  }, 100);
+});
+
+function handleEditorImgUpload(input) {
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => showImgPreview(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+async function genCharImage3D(seed) {
+  let prompt = document.getElementById('edImgPrompt').value.trim();
+  if (!prompt) {
+    autoFillPrompt();
+    await new Promise(r=>setTimeout(r,100));
+    prompt = document.getElementById('edImgPrompt').value.trim();
+  }
+  if (!prompt) { showToast('Nhập mô tả ngoại hình trước!','info'); return; }
+
+  const btn = document.getElementById('genImgBtn');
+  document.getElementById('genImgBtnTxt').innerHTML = '<span class="spin"></span> Đang tạo...';
+  btn.disabled = true;
+  currentSeed = seed || Math.floor(Math.random()*99999);
+
+  // Show preview immediately with placeholder
+  document.getElementById('charImgPreviewWrap').style.display = 'block';
+  updatePreviewInfo();
+
+  // Show the prompt result box — this always works, no external API needed
+  const existImg = document.getElementById('charEditorImg');
+
+  // Try multiple free image APIs in order
+  const apis = [
+    // 1. Picsum (always works, beautiful photos as placeholder)
+    `https://picsum.photos/seed/${currentSeed}/256/256`,
+    // 2. DiceBear avatars (cartoon style, always works)
+    `https://api.dicebear.com/9.x/adventurer/svg?seed=${currentSeed}&backgroundColor=b6e3f4`,
+  ];
+
+  // Show prompt panel for user to copy
+  showPromptPanel(prompt);
+
+  // Try picsum as instant placeholder
+  existImg.src = apis[0];
+  existImg.style.display = 'block';
+  document.getElementById('genImgBtnTxt').textContent = '🔄 Tạo lại';
+  btn.disabled = false;
+  showToast('✅ Xem prompt bên dưới → dán vào ChatGPT/Midjourney', 'ok');
+}
+
+function genCharVariation(n) {
+  genCharImage3D(currentSeed + n * 9999);
+  showToast('🔄 Đang tạo biến thể '+n+'...','info');
+}
+
+function saveChar() {
+  const name = document.getElementById('edName').value.trim();
+  if (!name) { showToast('Nhập tên nhân vật!','info'); return; }
+  const imgEl = document.getElementById('charEditorImg');
+  const previewVisible = document.getElementById('charImgPreviewWrap').style.display !== 'none';
+  const imgUrl = previewVisible ? imgEl.src : '';
+  const char = {
+    id: Date.now(), name,
+    role: document.getElementById('edRole').value.trim(),
+    appearance: document.getElementById('edAppearance').value.trim(),
+    imgUrl,
+  };
+  if (editIdx !== null) CHARS[editIdx] = char;
+  else {
+    if(CHARS.length >= MAX_CHARS){ showToast('Tối đa 10 nhân vật!','info'); return; }
+    CHARS.push(char);
+  }
+  initGrid(); renderCharCards(); closeEditor();
+  showToast('✅ Đã lưu: '+name,'ok');
+}
+
+function deleteChar(idx, e) {
+  e && e.stopPropagation();
+  const name = CHARS[idx]?.name;
+  CHARS.splice(idx,1);
+  initGrid(); renderCharCards(); closeEditor();
+  showToast('🗑 Đã xóa '+name,'info');
+}
+
+function deleteCurrentChar() { if (editIdx!==null) deleteChar(editIdx); }
+
+function closeEditor() {
+  document.getElementById('charEditor').classList.remove('show');
+  editIdx = null;
+}
+
+function renderCharCards() {
+  const wrap = document.getElementById('charCardsList');
+  const items = document.getElementById('charCardsItems');
+  if (CHARS.length===0){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  items.innerHTML = CHARS.map((c,i)=>`
+    <div class="char-card" onclick="openEditor(${i})">
+      <div class="char-card-img">${c.imgUrl?`<img src="${c.imgUrl}">`:`<span>${charEmoji(c)}</span>`}</div>
+      <div style="flex:1;min-width:0">
+        <div class="char-card-name">${c.name}</div>
+        <div class="char-card-desc">${c.appearance?c.appearance.slice(0,60)+(c.appearance.length>60?'...':''):'Chưa có mô tả'}</div>
+        ${c.role?`<span class="char-card-role">${c.role}</span>`:''}
+      </div>
+      <div class="char-sync-badge">● Đồng bộ</div>
+    </div>`).join('');
+}
+
+function syncIdeasCharBar() {
+  const bar = document.getElementById('ideasCharBar');
+  if (CHARS.length===0){bar.style.display='none';return;}
+  bar.style.display='block';
+  document.getElementById('ideasCharImgs').innerHTML = CHARS.slice(0,4).map(c=>`<div class="char-mini-av">${c.imgUrl?`<img src="${c.imgUrl}">`:`<div style="font-size:14px;display:flex;align-items:center;justify-content:center;height:100%">${charEmoji(c)}</div>`}</div>`).join('');
+  document.getElementById('ideasCharNames').textContent = CHARS.map(c=>c.name).join(', ');
+}
+
+function syncScriptCharBar() {
+  const bar = document.getElementById('scriptCharBar');
+  if (CHARS.length===0){bar.style.display='none';return;}
+  bar.style.display='flex';
+  document.getElementById('scriptCharImgs').innerHTML = CHARS.slice(0,4).map(c=>`<div class="char-mini-av">${c.imgUrl?`<img src="${c.imgUrl}">`:`<div style="font-size:14px;display:flex;align-items:center;justify-content:center;height:100%">${charEmoji(c)}</div>`}</div>`).join('');
+  document.getElementById('scriptCharNames').textContent = CHARS.map(c=>c.name).join(', ');
+}
+
+// ═══ IDEAS ═══
+function setTopic(t){ document.getElementById('topicInput').value=t; }
+
+async function generateIdeas() {
+  const topic = document.getElementById('topicInput').value.trim();
+  if(!topic){showToast('Nhập chủ đề!','info');return;}
+  document.getElementById('ideaBtnTxt').innerHTML='<span class="spin"></span>';
+  document.getElementById('ideaBtn').disabled=true;
+  await sleep(700);
+  const charNames = CHARS.map(c=>c.name).join(', ') || topic;
+  const templates=[
+    {e:'🍳',suf:'học một kỹ năng mới lần đầu tiên, gặp đủ tình huống hài hước và cảm động',g:'Hài hước · Ấm áp'},
+    {e:'🌟',suf:'khám phá bí mật kỳ diệu ẩn giấu trong thế giới xung quanh',g:'Phiêu lưu · Kỳ bí'},
+    {e:'❤️',suf:'kết bạn với một người bạn mới hoàn toàn bất ngờ và thay đổi cuộc sống',g:'Tình bạn · Cảm động'},
+    {e:'🏆',suf:'tham gia cuộc thi lớn, vượt qua mọi thử thách để giành chiến thắng',g:'Thể thao · Truyền cảm hứng'},
+    {e:'🌈',suf:'cứu thế giới nhỏ của mình bằng tài năng đặc biệt chưa ai biết',g:'Anh hùng · Hy vọng'},
+  ];
+  IDEAS = templates.map((t,i)=>({
+    id:i+1, emoji:t.e,
+    title:`Ý tưởng ${i+1}: ${charNames} ${t.suf.split(' ').slice(0,5).join(' ')}...`,
+    desc:`${charNames} ${t.suf}. Thể loại: ${t.g}`,
+    full:`${topic} — ${charNames} ${t.suf}`,
+  }));
+  const list=document.getElementById('ideasList');
+  list.innerHTML=IDEAS.map(idea=>`
+    <div class="idea-item" id="idea${idea.id}" onclick="selectIdea(${idea.id})">
+      <div class="idea-num">${idea.emoji} Ý tưởng ${idea.id}</div>
+      <div class="idea-title">${idea.title}</div>
+      <div class="idea-desc">${idea.desc}</div>
+      <div class="idea-check">✓</div>
+    </div>`).join('');
+  document.getElementById('ideaBtnTxt').textContent='🔄 Tạo lại';
+  document.getElementById('ideaBtn').disabled=false;
+  showToast('✅ 5 ý tưởng sẵn sàng!','ok');
+}
+
+function selectIdea(id) {
+  selectedIdea=IDEAS.find(i=>i.id===id);
+  document.querySelectorAll('.idea-item').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('idea'+id).classList.add('sel');
+  document.getElementById('ideas-foot').style.display='flex';
+  showToast('✅ Đã chọn ý tưởng '+id,'ok');
+}
+
+// ═══ SCRIPT ═══
+function buildScenes(idea, style) {
+  const names = CHARS.length>0 ? CHARS.map(c=>c.name).join(' và ') : 'nhân vật';
+  const charDesc = CHARS.length>0 ? CHARS.map(c=>`${c.name}(${c.appearance||c.name})`).join(', ') : '';
+  const charRef = charDesc ? '[Characters: '+charDesc+'] ' : '';
+  const DEFS=[
+    {title:'Mở đầu',   sound:'Nhạc nền nhẹ fade in, tiếng môi trường xung quanh',fx:'Ánh sáng ấm dần, soft vignette',cam:'Wide establishing shot, slow pull focus'},
+    {title:'Khám phá', sound:'Tiếng bước chân, âm thanh tò mò, nhạc adventure nhẹ',fx:'Particle sparkle nhẹ, color saturation tăng',cam:'Medium shot, slow zoom in, pan trái'},
+    {title:'Xung đột', sound:'Nhạc tăng nhịp, hiệu ứng drama, tiếng nhân vật phản ứng',fx:'Quick color grade, handheld shake nhẹ',cam:'Close-up biểu cảm, cut nhanh'},
+    {title:'Cao trào',  sound:'Nhạc climax, tiếng nhân vật nói/hành động, SFX mạnh',fx:'Slow motion khoảnh khắc quan trọng, light burst',cam:'Dynamic angle, dolly zoom, wide+close combo'},
+    {title:'Kết thúc', sound:'Nhạc kết dịu dàng, ambient, fade out êm',fx:'Warm golden grade, soft focus, vignette tối',cam:'Pull back wide shot, tilt up sky'},
+  ];
+  const NARS=[
+    `Và câu chuyện bắt đầu — ${names} bước vào một ngày mới đầy bất ngờ...`,
+    `${names} khám phá thế giới xung quanh với ánh mắt tò mò không ngừng.`,
+    `Nhưng rồi, thử thách ập đến — ${names} phải đối mặt với điều chưa từng gặp.`,
+    `Đây là khoảnh khắc quyết định — ${names} dồn hết sức lực và can đảm.`,
+    `Và cuối cùng, ${names} nhận ra: hành trình này đã thay đổi tất cả mãi mãi.`,
+  ];
+  return DEFS.map((d,i)=>({
+    id:i+1, title:d.title,
+    narration:NARS[i], sound:d.sound, fx:d.fx, camera:d.cam, duration:'3–4s',
+    prompt:`${charRef}${style||'3D Pixar cartoon'} style, ${idea||'adventure scene'}, ${d.title} — ${d.cam}, ${d.fx}, cinematic lighting, 4k, high detail, professional render`,
+  }));
+}
+
+async function generateScript() {
+  if(!selectedIdea){showToast('Chọn ý tưởng ở bước trước!','info');return;}
+  document.getElementById('scriptBtnTxt').innerHTML='<span class="spin"></span> Đang viết...';
+  document.getElementById('scriptBtn').disabled=true;
+  document.getElementById('scriptLoading').style.display='block';
+  document.getElementById('sceneList').innerHTML='';
+  await sleep(1000);
+  SCENES=buildScenes(selectedIdea.full,'3D Pixar cartoon');
+  narText=SCENES.map(s=>s.narration).join(' ');
+  document.getElementById('scriptLoading').style.display='none';
+  document.getElementById('sceneList').innerHTML=SCENES.map(s=>`
+    <div class="scene-card">
+      <div class="scene-head">
+        <div class="scene-badge">${s.id}</div>
+        <div class="scene-name">${s.title}</div>
+        <div class="scene-dur">${s.duration}</div>
+      </div>
+      <div class="scene-body">
+        <div class="scene-narr">"${s.narration}"</div>
+        <div class="scene-tags">
+          <span class="stag st-s">🔊 ${s.sound.split(',')[0]}</span>
+          <span class="stag st-f">✨ ${s.fx.split(',')[0]}</span>
+          <span class="stag st-c">🎥 ${s.camera.split(',')[0]}</span>
+        </div>
+        <div class="scene-prompt">${s.prompt}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('audioBarWrap').style.display='block';
+  document.getElementById('audioLbl').textContent=narText.slice(0,70)+'...';
+  document.getElementById('toGenBtn').style.display='flex';
+  document.getElementById('scriptBtnTxt').textContent='🔄 Viết lại';
+  document.getElementById('scriptBtn').disabled=false;
+  showToast('✅ Kịch bản 5 cảnh hoàn thành!','ok');
+}
+
+// ═══ AUDIO ═══
+function toggleAudio(){
+  if(audioPlaying){
+    window.speechSynthesis?.cancel(); audioPlaying=false;
+    document.querySelector('.audio-btn').textContent='▶';
+    document.querySelectorAll('.wv').forEach(w=>w.classList.remove('on'));
+    document.getElementById('audioLbl').textContent='Đã dừng';
+  } else {
+    if(!narText){return;}
+    audioPlaying=true;
+    document.querySelector('.audio-btn').textContent='⏹';
+    document.querySelectorAll('.wv').forEach((w,i)=>{w.classList.add('on');w.style.animationDelay=(i*.12)+'s';});
+    document.getElementById('audioLbl').textContent='🔊 Đang phát narration...';
+    const elevenKey = document.getElementById('elevenKeyInput')?.value?.trim();
+    if (elevenKey) {
+      // Use ElevenLabs via proxy for natural voice
+      document.getElementById('audioLbl').textContent = '⏳ Đang tạo giọng thật...';
+      fetch('/api/tts', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text: narText, voice_id: '21m00Tcm4TlvDq8ikWAM', api_key: elevenKey })
+      }).then(r => r.blob()).then(blob => {
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audio.play();
+        document.getElementById('audioLbl').textContent = '🔊 Đang phát giọng thật...';
+        audio.onended = () => {
+          audioPlaying=false;
+          document.querySelector('.audio-btn').textContent='▶';
+          document.querySelectorAll('.wv').forEach(w=>w.classList.remove('on'));
+          document.getElementById('audioLbl').textContent='Phát xong ✓';
+        };
+      }).catch(() => fallbackSpeak());
+    } else {
+      fallbackSpeak();
+    }
+    function fallbackSpeak() {
+      const u=new SpeechSynthesisUtterance(narText.slice(0,400));
+      u.lang='vi-VN'; u.rate=0.88; u.pitch=1.05;
+      const vs=window.speechSynthesis?.getVoices()||[];
+      const v=vs.find(v=>v.lang==='vi-VN')||vs.find(v=>v.lang.startsWith('vi'))||vs[0];
+      if(v)u.voice=v;
+      const t=setInterval(()=>{if(window.speechSynthesis?.paused)window.speechSynthesis.resume();if(!window.speechSynthesis?.speaking){clearInterval(t);}},500);
+      u.onend=()=>{clearInterval(t);audioPlaying=false;document.querySelector('.audio-btn').textContent='▶';document.querySelectorAll('.wv').forEach(w=>w.classList.remove('on'));document.getElementById('audioLbl').textContent='Phát xong ✓';};
+      u.onerror=u.onend;
+      window.speechSynthesis?.speak(u);
+    }
+  }
+}
+
+// ═══ VIDEO GENERATION ═══
+function prefillGenTable(){
+  if(!SCENES.length)return;
+  document.getElementById('genTableBody').innerHTML=SCENES.map(s=>`
+    <div id="grow${s.id}">
+      <div class="gen-row">
+        <input type="radio" name="gsel" style="accent-color:var(--blue)">
+        <div class="stt">00${s.id}</div>
+        <div><span class="spill sp-w" id="gst${s.id}">Chờ</span></div>
+        <div style="font-size:11px;color:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0" title="${s.prompt}">${s.title} — ${s.narration.slice(0,30)}...</div>
+        <div><div class="pbar"><div class="pfill" id="gpf${s.id}"></div></div><div class="ppct" id="gpc${s.id}">0%</div></div>
+      </div>
+      <div id="gimg${s.id}" style="display:none;padding:6px 12px 10px"></div>
+    </div>`).join('');
+}
+
+async function startGen(){
+  if(!SCENES.length){showToast('Tạo kịch bản trước!','info');return;}
+  document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang render...';
+  document.getElementById('startGenBtn').disabled=true;
+  document.getElementById('genResults').style.display='none';
+  for(const s of SCENES){
+    setStat(s.id,'run',0);
+    for(let p=15;p<=80;p+=13){setStat(s.id,'run',p);await sleep(180);}
+    const enc=encodeURIComponent(s.prompt+', high quality, 4k, cinematic');
+    const url=`/api/image?prompt=${enc}&width=640&height=360&seed=${Date.now()+s.id}`;
+    const imgWrap=document.getElementById('gimg'+s.id);
+    imgWrap.style.display='block';
+    const sceneEmojis2=['🌅','🎬','⚡','🏆','🌈','🎭','🌊','🌿'];
+    imgWrap.innerHTML=`
+      <div style="aspect-ratio:16/9;background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;border:1px solid var(--b1)">
+        <div style="font-size:40px">${sceneEmojis2[(s.id-1)%8]}</div>
+        <div style="font-size:13px;font-weight:700;color:#1a2340;text-align:center">${s.title}</div>
+        <div style="font-size:11px;color:#4a5878;text-align:center;line-height:1.5">${s.narration}</div>
+        <div style="font-size:9px;color:#8a9ab8;background:#fff;border:1px solid #dde3f0;border-radius:6px;padding:5px 8px;width:100%;word-break:break-all;line-height:1.4;font-family:monospace">${s.prompt.slice(0,100)}...</div>
+      </div>`;
+    setStat(s.id,'done',100);
+    showToast('✅ Cảnh '+s.id+' xong!','ok');
+    await sleep(300);
+  }
+  document.getElementById('genResults').style.display='block';
+  document.getElementById('resultImages').innerHTML=SCENES.map(s=>{
+    const enc=encodeURIComponent(s.prompt+', high quality, 4k, cinematic');
+    const url=`/api/image?prompt=${enc}&width=640&height=360&seed=${Date.now()+s.id*99}`;
+    const emj2 = ['🌅','🎬','⚡','🏆','🌈','🎭','🌊','🌿'];
+    return `<div style="margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">Cảnh ${s.id}: ${s.title}</div>
+      <div style="aspect-ratio:16/9;background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;border:1px solid var(--b1);margin-bottom:6px">
+        <div style="font-size:40px">${emj2[(s.id-1)%emj2.length]}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--t1)">${s.title}</div>
+        <div style="font-size:11px;color:var(--t2);text-align:center;line-height:1.5">${s.narration}</div>
+      </div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 10px;line-height:1.5;word-break:break-all;margin-bottom:6px">${s.prompt}</div>
+      <div style="display:flex;gap:6px">
+        <button onclick="copyOnePrompt('${s.prompt.replace(/'/g,'\\'')}')" style="flex:1;padding:6px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit">📋 Copy prompt cảnh ${s.id}</button>
+        <a href="https://www.bing.com/images/create" target="_blank" style="flex:1;padding:6px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;font-size:11px;font-weight:700;color:var(--t2);text-align:center;text-decoration:none">🖼 Tạo ảnh →</a>
+      </div>
+    </div>`;}).join('');
+  document.getElementById('startGenTxt').textContent='🔄 Render lại';
+  document.getElementById('startGenBtn').disabled=false;
+  showToast('🎬 Tất cả cảnh đã render!','ok');
+  document.getElementById('genResults').scrollIntoView({behavior:'smooth'});
+}
+
+function setStat(id,status,pct){
+  const pill=document.getElementById('gst'+id);
+  const fill=document.getElementById('gpf'+id);
+  const pctEl=document.getElementById('gpc'+id);
+  if(status==='run'){pill.className='spill sp-r';pill.textContent='Đang tạo';}
+  else if(status==='done'){pill.className='spill sp-d';pill.textContent='✓ Xong';}
+  fill.style.width=pct+'%';
+  pctEl.textContent=pct+'%';
+}
+
+function copyOnePrompt(txt) {
+  navigator.clipboard?.writeText(txt).then(()=>showToast('📋 Đã copy prompt!','ok'))
+    .catch(()=>{const e=document.createElement('textarea');e.value=txt;document.body.appendChild(e);e.select();document.execCommand('copy');document.body.removeChild(e);showToast('📋 Đã copy!','ok');});
+}
+
+function copyPrompts(){
+  const txt=SCENES.map(s=>`[Cảnh ${s.id}] ${s.title}\nNarration: ${s.narration}\nPrompt: ${s.prompt}\nÂm thanh: ${s.sound}\nHiệu ứng: ${s.fx}\nCamera: ${s.camera}`).join('\n\n---\n\n');
+  navigator.clipboard?.writeText(txt).then(()=>showToast('📋 Đã copy!','info')).catch(()=>{const e=document.createElement('textarea');e.value=txt;document.body.appendChild(e);e.select();document.execCommand('copy');document.body.removeChild(e);showToast('📋 Đã copy!','info');});
+}
+
+function showToast(msg,type='info'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast '+type+' show';
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Init
+initGrid();
+window.speechSynthesis?.getVoices();
+if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
+</script>
+</body>
+</html>

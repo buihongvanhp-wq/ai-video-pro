@@ -1,5 +1,7 @@
 {
-  "version": 2,
-  "builds": [{ "src": "index.html", "use": "@vercel/static" }],
-  "routes": [{ "src": "/(.*)", "dest": "/index.html" }]
+  "routes": [
+    { "src": "/api/image", "dest": "/api/image.js" },
+    { "src": "/api/tts", "dest": "/api/tts.js" },
+    { "src": "/", "dest": "/index.html" }
+  ]
 }
