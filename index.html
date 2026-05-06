@@ -769,11 +769,18 @@ async function genCharImage3D(seed) {
     document.getElementById('charImgPreviewWrap').style.display = 'block';
     updatePreviewInfo();
     const existImg = document.getElementById('charEditorImg');
-    showPromptPanel(prompt);
-    existImg.src = `https://picsum.photos/seed/${currentSeed}/256/256`;
     existImg.style.display = 'block';
+    existImg.style.opacity = '0.4';
+    // Dùng Pollinations.ai — miễn phí, sinh ảnh đúng theo prompt
+    const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${currentSeed}&nologo=true&model=flux`;
+    existImg.onload = () => { existImg.style.opacity = '1'; };
+    existImg.onerror = () => {
+      existImg.style.opacity = '1';
+      showToast('Không tải được ảnh, thử lại!','info');
+    };
+    existImg.src = imgUrl;
     document.getElementById('genImgBtnTxt').textContent = '🔄 Tạo lại';
-    showToast('✅ Xem prompt bên dưới → dán vào ChatGPT/Midjourney', 'ok');
+    showToast('🎨 Đang render ảnh theo mô tả...', 'ok');
   } catch(err) {
     document.getElementById('genImgBtnTxt').textContent = '🎨 Tạo ảnh ngay';
     showToast('Lỗi: '+err.message,'info');
