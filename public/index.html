@@ -762,28 +762,33 @@ async function genCharImage3D(seed) {
   if (!prompt) { showToast('Nhập mô tả ngoại hình trước!','info'); return; }
 
   const btn = document.getElementById('genImgBtn');
-  document.getElementById('genImgBtnTxt').innerHTML = '<span class="spin"></span> Đang tạo...';
+  const btnTxt = document.getElementById('genImgBtnTxt');
+  btnTxt.innerHTML = '<span class="spin"></span> Đang tạo...';
   btn.disabled = true;
+  currentSeed = seed || Math.floor(Math.random()*99999);
+  document.getElementById('charImgPreviewWrap').style.display = 'block';
+  updatePreviewInfo();
+  const existImg = document.getElementById('charEditorImg');
+  existImg.style.display = 'block';
+  existImg.style.opacity = '0.25';
+  const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${currentSeed}&nologo=true&model=turbo`;
+  showToast('🎨 Đang tạo ảnh AI (15-60 giây)...', 'ok');
   try {
-    currentSeed = seed || Math.floor(Math.random()*99999);
-    document.getElementById('charImgPreviewWrap').style.display = 'block';
-    updatePreviewInfo();
-    const existImg = document.getElementById('charEditorImg');
-    existImg.style.display = 'block';
-    existImg.style.opacity = '0.4';
-    // Dùng Pollinations.ai — miễn phí, sinh ảnh đúng theo prompt
-    const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${currentSeed}&nologo=true&model=flux`;
-    existImg.onload = () => { existImg.style.opacity = '1'; };
-    existImg.onerror = () => {
-      existImg.style.opacity = '1';
-      showToast('Không tải được ảnh, thử lại!','info');
-    };
+    await new Promise((resolve, reject) => {
+      const t = setTimeout(() => reject(new Error('Quá thời gian, thử lại!')), 90000);
+      const img = new Image();
+      img.onload = () => { clearTimeout(t); resolve(); };
+      img.onerror = () => { clearTimeout(t); reject(new Error('Không tải được ảnh')); };
+      img.src = imgUrl;
+    });
     existImg.src = imgUrl;
-    document.getElementById('genImgBtnTxt').textContent = '🔄 Tạo lại';
-    showToast('🎨 Đang render ảnh theo mô tả...', 'ok');
+    existImg.style.opacity = '1';
+    btnTxt.textContent = '🔄 Tạo lại';
+    showToast('✅ Ảnh đã tạo xong!', 'ok');
   } catch(err) {
-    document.getElementById('genImgBtnTxt').textContent = '🎨 Tạo ảnh ngay';
-    showToast('Lỗi: '+err.message,'info');
+    existImg.style.opacity = '0.25';
+    btnTxt.textContent = '🎨 Tạo ảnh ngay';
+    showToast('❌ ' + err.message, 'info');
   } finally {
     btn.disabled = false;
   }
