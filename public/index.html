@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
@@ -545,9 +545,9 @@ let stepsDone = { chars:false, ideas:false, script:false };
 // ═══ TAB NAVIGATION ═══
 function showTab(tab) {
   ['chars','ideas','script','gen'].forEach(t => {
-    document.getElementById('pane-'+t).className = 'pane'+(t===tab?' active':'');
+    document.getElementById('pane-'+t).classList.toggle('active', t===tab);
     const el = document.getElementById('tab-'+t);
-    if (el) el.className = el.className.replace(' active','') + (t===tab?' active':'');
+    if (el) el.classList.toggle('active', t===tab);
   });
   if (tab==='ideas') syncIdeasCharBar();
   if (tab==='script') syncScriptCharBar();
@@ -577,8 +577,8 @@ function initGrid() {
     const idx = CHARS.length+i;
     const d = document.createElement('div');
     d.className = 'cslot';
-    d.innerHTML = `<div class="cslot-plus">＋</div><div class="cslot-lbl">Thêm<br>nhân vật</div><input type="file" accept="image/*" onchange="handleSlotUpload(${idx},this)">`;
-    d.onclick = () => openNewEditor();
+    d.innerHTML = `<div class="cslot-plus">＋</div><div class="cslot-lbl">Thêm<br>nhân vật</div><input type="file" accept="image/*" onclick="event.stopPropagation()" onchange="handleSlotUpload(${idx},this)">`;
+    d.onclick = (e) => { if (e.target.tagName !== 'INPUT') openNewEditor(); };
     grid.appendChild(d);
   }
   updateCountBar();
@@ -764,32 +764,22 @@ async function genCharImage3D(seed) {
   const btn = document.getElementById('genImgBtn');
   document.getElementById('genImgBtnTxt').innerHTML = '<span class="spin"></span> Đang tạo...';
   btn.disabled = true;
-  currentSeed = seed || Math.floor(Math.random()*99999);
-
-  // Show preview immediately with placeholder
-  document.getElementById('charImgPreviewWrap').style.display = 'block';
-  updatePreviewInfo();
-
-  // Show the prompt result box — this always works, no external API needed
-  const existImg = document.getElementById('charEditorImg');
-
-  // Try multiple free image APIs in order
-  const apis = [
-    // 1. Picsum (always works, beautiful photos as placeholder)
-    `https://picsum.photos/seed/${currentSeed}/256/256`,
-    // 2. DiceBear avatars (cartoon style, always works)
-    `https://api.dicebear.com/9.x/adventurer/svg?seed=${currentSeed}&backgroundColor=b6e3f4`,
-  ];
-
-  // Show prompt panel for user to copy
-  showPromptPanel(prompt);
-
-  // Try picsum as instant placeholder
-  existImg.src = apis[0];
-  existImg.style.display = 'block';
-  document.getElementById('genImgBtnTxt').textContent = '🔄 Tạo lại';
-  btn.disabled = false;
-  showToast('✅ Xem prompt bên dưới → dán vào ChatGPT/Midjourney', 'ok');
+  try {
+    currentSeed = seed || Math.floor(Math.random()*99999);
+    document.getElementById('charImgPreviewWrap').style.display = 'block';
+    updatePreviewInfo();
+    const existImg = document.getElementById('charEditorImg');
+    showPromptPanel(prompt);
+    existImg.src = `https://picsum.photos/seed/${currentSeed}/256/256`;
+    existImg.style.display = 'block';
+    document.getElementById('genImgBtnTxt').textContent = '🔄 Tạo lại';
+    showToast('✅ Xem prompt bên dưới → dán vào ChatGPT/Midjourney', 'ok');
+  } catch(err) {
+    document.getElementById('genImgBtnTxt').textContent = '🎨 Tạo ảnh ngay';
+    showToast('Lỗi: '+err.message,'info');
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function genCharVariation(n) {
@@ -872,34 +862,41 @@ function setTopic(t){ document.getElementById('topicInput').value=t; }
 async function generateIdeas() {
   const topic = document.getElementById('topicInput').value.trim();
   if(!topic){showToast('Nhập chủ đề!','info');return;}
+  const btn = document.getElementById('ideaBtn');
   document.getElementById('ideaBtnTxt').innerHTML='<span class="spin"></span>';
-  document.getElementById('ideaBtn').disabled=true;
-  await sleep(700);
-  const charNames = CHARS.map(c=>c.name).join(', ') || topic;
-  const templates=[
-    {e:'🍳',suf:'học một kỹ năng mới lần đầu tiên, gặp đủ tình huống hài hước và cảm động',g:'Hài hước · Ấm áp'},
-    {e:'🌟',suf:'khám phá bí mật kỳ diệu ẩn giấu trong thế giới xung quanh',g:'Phiêu lưu · Kỳ bí'},
-    {e:'❤️',suf:'kết bạn với một người bạn mới hoàn toàn bất ngờ và thay đổi cuộc sống',g:'Tình bạn · Cảm động'},
-    {e:'🏆',suf:'tham gia cuộc thi lớn, vượt qua mọi thử thách để giành chiến thắng',g:'Thể thao · Truyền cảm hứng'},
-    {e:'🌈',suf:'cứu thế giới nhỏ của mình bằng tài năng đặc biệt chưa ai biết',g:'Anh hùng · Hy vọng'},
-  ];
-  IDEAS = templates.map((t,i)=>({
-    id:i+1, emoji:t.e,
-    title:`Ý tưởng ${i+1}: ${charNames} ${t.suf.split(' ').slice(0,5).join(' ')}...`,
-    desc:`${charNames} ${t.suf}. Thể loại: ${t.g}`,
-    full:`${topic} — ${charNames} ${t.suf}`,
-  }));
-  const list=document.getElementById('ideasList');
-  list.innerHTML=IDEAS.map(idea=>`
-    <div class="idea-item" id="idea${idea.id}" onclick="selectIdea(${idea.id})">
-      <div class="idea-num">${idea.emoji} Ý tưởng ${idea.id}</div>
-      <div class="idea-title">${idea.title}</div>
-      <div class="idea-desc">${idea.desc}</div>
-      <div class="idea-check">✓</div>
-    </div>`).join('');
-  document.getElementById('ideaBtnTxt').textContent='🔄 Tạo lại';
-  document.getElementById('ideaBtn').disabled=false;
-  showToast('✅ 5 ý tưởng sẵn sàng!','ok');
+  btn.disabled=true;
+  try {
+    await sleep(700);
+    const charNames = CHARS.map(c=>c.name).join(', ') || topic;
+    const templates=[
+      {e:'🍳',suf:'học một kỹ năng mới lần đầu tiên, gặp đủ tình huống hài hước và cảm động',g:'Hài hước · Ấm áp'},
+      {e:'🌟',suf:'khám phá bí mật kỳ diệu ẩn giấu trong thế giới xung quanh',g:'Phiêu lưu · Kỳ bí'},
+      {e:'❤️',suf:'kết bạn với một người bạn mới hoàn toàn bất ngờ và thay đổi cuộc sống',g:'Tình bạn · Cảm động'},
+      {e:'🏆',suf:'tham gia cuộc thi lớn, vượt qua mọi thử thách để giành chiến thắng',g:'Thể thao · Truyền cảm hứng'},
+      {e:'🌈',suf:'cứu thế giới nhỏ của mình bằng tài năng đặc biệt chưa ai biết',g:'Anh hùng · Hy vọng'},
+    ];
+    IDEAS = templates.map((t,i)=>({
+      id:i+1, emoji:t.e,
+      title:`Ý tưởng ${i+1}: ${charNames} ${t.suf.split(' ').slice(0,5).join(' ')}...`,
+      desc:`${charNames} ${t.suf}. Thể loại: ${t.g}`,
+      full:`${topic} — ${charNames} ${t.suf}`,
+    }));
+    const list=document.getElementById('ideasList');
+    list.innerHTML=IDEAS.map(idea=>`
+      <div class="idea-item" id="idea${idea.id}" onclick="selectIdea(${idea.id})">
+        <div class="idea-num">${idea.emoji} Ý tưởng ${idea.id}</div>
+        <div class="idea-title">${idea.title}</div>
+        <div class="idea-desc">${idea.desc}</div>
+        <div class="idea-check">✓</div>
+      </div>`).join('');
+    document.getElementById('ideaBtnTxt').textContent='🔄 Tạo lại';
+    showToast('✅ 5 ý tưởng sẵn sàng!','ok');
+  } catch(err) {
+    document.getElementById('ideaBtnTxt').textContent='✨ Tạo';
+    showToast('Lỗi: '+err.message,'info');
+  } finally {
+    btn.disabled=false;
+  }
 }
 
 function selectIdea(id) {
@@ -938,37 +935,45 @@ function buildScenes(idea, style) {
 
 async function generateScript() {
   if(!selectedIdea){showToast('Chọn ý tưởng ở bước trước!','info');return;}
+  const btn = document.getElementById('scriptBtn');
   document.getElementById('scriptBtnTxt').innerHTML='<span class="spin"></span> Đang viết...';
-  document.getElementById('scriptBtn').disabled=true;
+  btn.disabled=true;
   document.getElementById('scriptLoading').style.display='block';
   document.getElementById('sceneList').innerHTML='';
-  await sleep(1000);
-  SCENES=buildScenes(selectedIdea.full,'3D Pixar cartoon');
-  narText=SCENES.map(s=>s.narration).join(' ');
-  document.getElementById('scriptLoading').style.display='none';
-  document.getElementById('sceneList').innerHTML=SCENES.map(s=>`
-    <div class="scene-card">
-      <div class="scene-head">
-        <div class="scene-badge">${s.id}</div>
-        <div class="scene-name">${s.title}</div>
-        <div class="scene-dur">${s.duration}</div>
-      </div>
-      <div class="scene-body">
-        <div class="scene-narr">"${s.narration}"</div>
-        <div class="scene-tags">
-          <span class="stag st-s">🔊 ${s.sound.split(',')[0]}</span>
-          <span class="stag st-f">✨ ${s.fx.split(',')[0]}</span>
-          <span class="stag st-c">🎥 ${s.camera.split(',')[0]}</span>
+  try {
+    await sleep(1000);
+    SCENES=buildScenes(selectedIdea.full,'3D Pixar cartoon');
+    narText=SCENES.map(s=>s.narration).join(' ');
+    document.getElementById('scriptLoading').style.display='none';
+    document.getElementById('sceneList').innerHTML=SCENES.map(s=>`
+      <div class="scene-card">
+        <div class="scene-head">
+          <div class="scene-badge">${s.id}</div>
+          <div class="scene-name">${s.title}</div>
+          <div class="scene-dur">${s.duration}</div>
         </div>
-        <div class="scene-prompt">${s.prompt}</div>
-      </div>
-    </div>`).join('');
-  document.getElementById('audioBarWrap').style.display='block';
-  document.getElementById('audioLbl').textContent=narText.slice(0,70)+'...';
-  document.getElementById('toGenBtn').style.display='flex';
-  document.getElementById('scriptBtnTxt').textContent='🔄 Viết lại';
-  document.getElementById('scriptBtn').disabled=false;
-  showToast('✅ Kịch bản 5 cảnh hoàn thành!','ok');
+        <div class="scene-body">
+          <div class="scene-narr">"${s.narration}"</div>
+          <div class="scene-tags">
+            <span class="stag st-s">🔊 ${s.sound.split(',')[0]}</span>
+            <span class="stag st-f">✨ ${s.fx.split(',')[0]}</span>
+            <span class="stag st-c">🎥 ${s.camera.split(',')[0]}</span>
+          </div>
+          <div class="scene-prompt">${s.prompt}</div>
+        </div>
+      </div>`).join('');
+    document.getElementById('audioBarWrap').style.display='block';
+    document.getElementById('audioLbl').textContent=narText.slice(0,70)+'...';
+    document.getElementById('toGenBtn').style.display='flex';
+    document.getElementById('scriptBtnTxt').textContent='🔄 Viết lại';
+    showToast('✅ Kịch bản 5 cảnh hoàn thành!','ok');
+  } catch(err) {
+    document.getElementById('scriptLoading').style.display='none';
+    document.getElementById('scriptBtnTxt').textContent='✍️ Viết kịch bản';
+    showToast('Lỗi: '+err.message,'info');
+  } finally {
+    btn.disabled=false;
+  }
 }
 
 // ═══ AUDIO ═══
@@ -1039,50 +1044,54 @@ function prefillGenTable(){
 
 async function startGen(){
   if(!SCENES.length){showToast('Tạo kịch bản trước!','info');return;}
+  const btn = document.getElementById('startGenBtn');
   document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang render...';
-  document.getElementById('startGenBtn').disabled=true;
+  btn.disabled=true;
   document.getElementById('genResults').style.display='none';
-  for(const s of SCENES){
-    setStat(s.id,'run',0);
-    for(let p=15;p<=80;p+=13){setStat(s.id,'run',p);await sleep(180);}
-    const enc=encodeURIComponent(s.prompt+', high quality, 4k, cinematic');
-    const url=`/api/image?prompt=${enc}&width=640&height=360&seed=${Date.now()+s.id}`;
-    const imgWrap=document.getElementById('gimg'+s.id);
-    imgWrap.style.display='block';
-    const sceneEmojis2=['🌅','🎬','⚡','🏆','🌈','🎭','🌊','🌿'];
-    imgWrap.innerHTML=`
-      <div style="aspect-ratio:16/9;background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;border:1px solid var(--b1)">
-        <div style="font-size:40px">${sceneEmojis2[(s.id-1)%8]}</div>
-        <div style="font-size:13px;font-weight:700;color:#1a2340;text-align:center">${s.title}</div>
-        <div style="font-size:11px;color:#4a5878;text-align:center;line-height:1.5">${s.narration}</div>
-        <div style="font-size:9px;color:#8a9ab8;background:#fff;border:1px solid #dde3f0;border-radius:6px;padding:5px 8px;width:100%;word-break:break-all;line-height:1.4;font-family:monospace">${s.prompt.slice(0,100)}...</div>
-      </div>`;
-    setStat(s.id,'done',100);
-    showToast('✅ Cảnh '+s.id+' xong!','ok');
-    await sleep(300);
+  try {
+    for(const s of SCENES){
+      setStat(s.id,'run',0);
+      for(let p=15;p<=80;p+=13){setStat(s.id,'run',p);await sleep(180);}
+      const imgWrap=document.getElementById('gimg'+s.id);
+      if(!imgWrap) continue;
+      imgWrap.style.display='block';
+      const sceneEmojis2=['🌅','🎬','⚡','🏆','🌈','🎭','🌊','🌿'];
+      imgWrap.innerHTML=`
+        <div style="aspect-ratio:16/9;background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;border:1px solid var(--b1)">
+          <div style="font-size:40px">${sceneEmojis2[(s.id-1)%8]}</div>
+          <div style="font-size:13px;font-weight:700;color:#1a2340;text-align:center">${s.title}</div>
+          <div style="font-size:11px;color:#4a5878;text-align:center;line-height:1.5">${s.narration}</div>
+          <div style="font-size:9px;color:#8a9ab8;background:#fff;border:1px solid #dde3f0;border-radius:6px;padding:5px 8px;width:100%;word-break:break-all;line-height:1.4;font-family:monospace">${s.prompt.slice(0,100)}...</div>
+        </div>`;
+      setStat(s.id,'done',100);
+      showToast('✅ Cảnh '+s.id+' xong!','ok');
+      await sleep(300);
+    }
+    document.getElementById('genResults').style.display='block';
+    const emj2=['🌅','🎬','⚡','🏆','🌈','🎭','🌊','🌿'];
+    document.getElementById('resultImages').innerHTML=SCENES.map(s=>`
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">Cảnh ${s.id}: ${s.title}</div>
+        <div style="aspect-ratio:16/9;background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;border:1px solid var(--b1);margin-bottom:6px">
+          <div style="font-size:40px">${emj2[(s.id-1)%emj2.length]}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--t1)">${s.title}</div>
+          <div style="font-size:11px;color:var(--t2);text-align:center;line-height:1.5">${s.narration}</div>
+        </div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 10px;line-height:1.5;word-break:break-all;margin-bottom:6px">${s.prompt}</div>
+        <div style="display:flex;gap:6px">
+          <button data-prompt="${s.id}" onclick="copyScenePrompt(this)" style="flex:1;padding:6px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit">📋 Copy prompt cảnh ${s.id}</button>
+          <a href="https://www.bing.com/images/create" target="_blank" style="flex:1;padding:6px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;font-size:11px;font-weight:700;color:var(--t2);text-align:center;text-decoration:none">🖼 Tạo ảnh →</a>
+        </div>
+      </div>`).join('');
+    document.getElementById('startGenTxt').textContent='🔄 Render lại';
+    showToast('🎬 Tất cả cảnh đã render!','ok');
+    document.getElementById('genResults').scrollIntoView({behavior:'smooth'});
+  } catch(err) {
+    document.getElementById('startGenTxt').textContent='🚀 Bắt đầu tạo video';
+    showToast('Lỗi: '+err.message,'info');
+  } finally {
+    btn.disabled=false;
   }
-  document.getElementById('genResults').style.display='block';
-  document.getElementById('resultImages').innerHTML=SCENES.map(s=>{
-    const enc=encodeURIComponent(s.prompt+', high quality, 4k, cinematic');
-    const url=`/api/image?prompt=${enc}&width=640&height=360&seed=${Date.now()+s.id*99}`;
-    const emj2 = ['🌅','🎬','⚡','🏆','🌈','🎭','🌊','🌿'];
-    return `<div style="margin-bottom:14px">
-      <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">Cảnh ${s.id}: ${s.title}</div>
-      <div style="aspect-ratio:16/9;background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;border:1px solid var(--b1);margin-bottom:6px">
-        <div style="font-size:40px">${emj2[(s.id-1)%emj2.length]}</div>
-        <div style="font-size:13px;font-weight:700;color:var(--t1)">${s.title}</div>
-        <div style="font-size:11px;color:var(--t2);text-align:center;line-height:1.5">${s.narration}</div>
-      </div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 10px;line-height:1.5;word-break:break-all;margin-bottom:6px">${s.prompt}</div>
-      <div style="display:flex;gap:6px">
-        <button onclick="copyOnePrompt('${s.prompt.replace(/'/g,'\\'')}')" style="flex:1;padding:6px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit">📋 Copy prompt cảnh ${s.id}</button>
-        <a href="https://www.bing.com/images/create" target="_blank" style="flex:1;padding:6px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;font-size:11px;font-weight:700;color:var(--t2);text-align:center;text-decoration:none">🖼 Tạo ảnh →</a>
-      </div>
-    </div>`;}).join('');
-  document.getElementById('startGenTxt').textContent='🔄 Render lại';
-  document.getElementById('startGenBtn').disabled=false;
-  showToast('🎬 Tất cả cảnh đã render!','ok');
-  document.getElementById('genResults').scrollIntoView({behavior:'smooth'});
 }
 
 function setStat(id,status,pct){
@@ -1098,6 +1107,13 @@ function setStat(id,status,pct){
 function copyOnePrompt(txt) {
   navigator.clipboard?.writeText(txt).then(()=>showToast('📋 Đã copy prompt!','ok'))
     .catch(()=>{const e=document.createElement('textarea');e.value=txt;document.body.appendChild(e);e.select();document.execCommand('copy');document.body.removeChild(e);showToast('📋 Đã copy!','ok');});
+}
+
+function copyScenePrompt(btn) {
+  const id = parseInt(btn.getAttribute('data-prompt'));
+  const scene = SCENES.find(s => s.id === id);
+  if (!scene) return;
+  copyOnePrompt(scene.prompt);
 }
 
 function copyPrompts(){
@@ -1118,3 +1134,4 @@ if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>window.spee
 </script>
 </body>
 </html>
+
