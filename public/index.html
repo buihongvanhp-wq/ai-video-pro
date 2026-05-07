@@ -1197,9 +1197,20 @@ async function assembleVideo() {
         } catch(e){ sceneAudioBufs.push(null); }
       }
     } else {
-      // Ambient background music (no key needed)
-      SCENES.forEach(()=>sceneAudioBufs.push(null));
-      startAmbientMusic(audioCtx, audioDest, SCENES.length*4.5);
+      // Google TTS miễn phí — narration từng cảnh
+      if(lblEl) lblEl.textContent='Đang tạo audio (Google TTS)...';
+      if(barEl) barEl.style.width='3%';
+      for(let i=0;i<SCENES.length;i++){
+        if(lblEl) lblEl.textContent=`Tạo audio cảnh ${i+1}/${SCENES.length}...`;
+        if(barEl) barEl.style.width=(3+(i/SCENES.length)*12)+'%';
+        try {
+          const r=await fetch('/api/gtts',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({text:SCENES[i].narration,lang:'vi'})});
+          if(!r.ok) throw new Error(r.status);
+          const ab=await (await r.blob()).arrayBuffer();
+          sceneAudioBufs.push(await audioCtx.decodeAudioData(ab));
+        } catch(e){ sceneAudioBufs.push(null); }
+      }
     }
 
     // ── CANVAS setup ──
@@ -1225,7 +1236,7 @@ async function assembleVideo() {
     for(let i=0;i<SCENES.length;i++){
       const s=SCENES[i], img=imgs[i], audioBuf=sceneAudioBufs[i];
       if(barEl) barEl.style.width=(15+i/SCENES.length*72)+'%';
-      if(lblEl) lblEl.textContent=`Ghép cảnh ${s.id}/${SCENES.length}${elevenKey?' (có audio)':''}...`;
+      if(lblEl) lblEl.textContent=`Ghép cảnh ${s.id}/${SCENES.length}...`;
 
       // Play per-scene narration audio
       let sceneDuration=3500;
@@ -1249,7 +1260,7 @@ async function assembleVideo() {
         const nar=s.narration.length>72?s.narration.slice(0,72)+'…':s.narration;
         ctx.fillText('"'+nar+'"',38,672);
         // Audio indicator
-        if(elevenKey&&audioBuf){ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='13px sans-serif';ctx.fillText('🔊',1230,672);}
+        if(audioBuf){ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='13px sans-serif';ctx.fillText('🔊',1230,672);}
       };
       let t0=Date.now();
       while(Date.now()-t0<sceneDuration){drawFrame();await new Promise(r=>requestAnimationFrame(r));}
@@ -1279,7 +1290,7 @@ async function assembleVideo() {
     const url=URL.createObjectURL(blob);
     if(barEl) barEl.style.width='100%';
     const sizeMB=Math.round(blob.size/1024/1024*10)/10;
-    if(lblEl) lblEl.textContent=`✅ Video${elevenKey?' + audio':' + nhạc nền'} · ${sizeMB} MB · Sẵn sàng tải!`;
+    if(lblEl) lblEl.textContent=`✅ Video + audio · ${sizeMB} MB · Sẵn sàng tải!`;
     const dlArea=document.getElementById('videoDownloadArea');
     const dlLink=document.getElementById('videoDownloadLink');
     if(dlArea&&dlLink){dlLink.href=url; dlArea.style.display='block';}
@@ -1325,33 +1336,59 @@ function startAmbientMusic(audioCtx, dest, durationSec) {
 }
 
 async function downloadNarration() {
+  if(!narText){showToast('Tạo kịch bản trước!','info');return;}
   const btn=document.getElementById('narrationBtn');
   if(!btn) return;
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Đang tạo...';
   const elevenKey=document.getElementById('elevenKeyInput')?.value?.trim();
-  if(!elevenKey){
-    showTab('script');
-    setTimeout(()=>{
-      const inp=document.getElementById('elevenKeyInput');
-      if(!inp) return;
-      inp.scrollIntoView({behavior:'smooth',block:'center'});
-      inp.focus();
-      inp.style.transition='border-color .2s, box-shadow .2s';
-      inp.style.borderColor='var(--blue)';
-      inp.style.boxShadow='0 0 0 4px rgba(37,99,235,.15)';
-      setTimeout(()=>{inp.style.borderColor='';inp.style.boxShadow='';},2500);
-    },300);
-    showToast('🔑 Nhập ElevenLabs API key để tải audio','info');
-    return;
-  }
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
   try {
-    const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:narText,voice_id:'21m00Tcm4TlvDq8ikWAM',api_key:elevenKey})});
-    if(!r.ok) throw new Error('ElevenLabs lỗi '+r.status);
-    const blob=await r.blob();
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='narration.mp3'; a.click();
-    showToast('🔊 Audio đã tải xuống!','ok');
+    if(elevenKey){
+      // ElevenLabs — giọng thật, full narration 1 request
+      const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({text:narText,voice_id:'21m00Tcm4TlvDq8ikWAM',api_key:elevenKey})});
+      if(!r.ok) throw new Error('ElevenLabs lỗi '+r.status);
+      const blob=await r.blob();
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='narration.mp3'; a.click();
+      showToast('🔊 Audio ElevenLabs đã tải!','ok');
+    } else {
+      // Google TTS miễn phí — tạo từng cảnh rồi ghép
+      const audioCtx=new AudioContext();
+      const bufs=[];
+      for(let i=0;i<SCENES.length;i++){
+        btn.innerHTML=`<span class="spin"></span> ${i+1}/${SCENES.length}`;
+        const r=await fetch('/api/gtts',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({text:SCENES[i].narration,lang:'vi'})});
+        if(!r.ok) throw new Error('Google TTS lỗi '+r.status);
+        const ab=await (await r.blob()).arrayBuffer();
+        bufs.push(await audioCtx.decodeAudioData(ab));
+      }
+      // Ghép các AudioBuffer → WAV
+      const sr=bufs[0].sampleRate;
+      const total=bufs.reduce((s,b)=>s+b.length,0);
+      const combined=audioCtx.createBuffer(1,total,sr);
+      let off=0;
+      for(const b of bufs){combined.copyToChannel(b.getChannelData(0),0,off);off+=b.length;}
+      audioCtx.close();
+      const blob=new Blob([audioBufferToWav(combined)],{type:'audio/wav'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='narration.wav'; a.click();
+      showToast('🔊 Audio Google TTS đã tải!','ok');
+    }
   } catch(err){ showToast('Lỗi audio: '+err.message,'info'); }
   finally{ btn.disabled=false; btn.textContent='🔊 Tải audio'; }
+}
+
+function audioBufferToWav(buf){
+  const nc=buf.numberOfChannels, sr=buf.sampleRate, nl=buf.length;
+  const ab=new ArrayBuffer(44+nl*nc*2); const v=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+nl*nc*2,true);ws(8,'WAVE');ws(12,'fmt ');
+  v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,nc,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*nc*2,true);
+  v.setUint16(32,nc*2,true);v.setUint16(34,16,true);
+  ws(36,'data');v.setUint32(40,nl*nc*2,true);
+  const ch=buf.getChannelData(0); let o=44;
+  for(let i=0;i<nl;i++){const s=Math.max(-1,Math.min(1,ch[i]));v.setInt16(o,s<0?s*0x8000:s*0x7FFF,true);o+=2;}
+  return ab;
 }
 
 function setStat(id,status,pct){

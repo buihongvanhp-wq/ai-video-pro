@@ -2,6 +2,7 @@
   "routes": [
     { "src": "/api/image", "dest": "/api/image.js" },
     { "src": "/api/tts", "dest": "/api/tts.js" },
+    { "src": "/api/gtts", "dest": "/api/gtts.js" },
     { "src": "/", "dest": "/index.html" }
   ]
 }
