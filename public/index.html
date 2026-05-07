@@ -1120,15 +1120,15 @@ async function startGen(){
 async function genSceneImage(s, retry=0) {
   setStat(s.id,'run',10);
   const seed=Math.floor(Math.random()*99999);
-  const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(s.prompt)}?width=1280&height=720&seed=${seed}&nologo=true&model=turbo`;
+  const url=`/api/image?prompt=${encodeURIComponent(s.prompt)}&width=1280&height=720&seed=${seed}`;
   let prog=10;
   const iv=setInterval(()=>{ prog=Math.min(prog+7,88); setStat(s.id,'run',prog); },3000);
   try {
     await new Promise((res,rej)=>{
       const t=setTimeout(()=>rej(new Error('Timeout')),120000);
-      const img=new Image(); img.crossOrigin='anonymous';
+      const img=new Image();
       img.onload=()=>{clearTimeout(t);res();};
-      img.onerror=()=>{clearTimeout(t);rej(new Error('Load failed'));};
+      img.onerror=()=>{clearTimeout(t);rej(new Error('Lỗi tạo ảnh'));};
       img.src=url;
     });
     s.imgUrl=url; clearInterval(iv); setStat(s.id,'done',100);
@@ -1196,7 +1196,7 @@ function showGenResults() {
 async function loadImg(url) {
   if(!url) return null;
   return new Promise(r=>{
-    const img=new Image(); img.crossOrigin='anonymous';
+    const img=new Image();
     img.onload=()=>r(img); img.onerror=()=>r(null); img.src=url;
   });
 }

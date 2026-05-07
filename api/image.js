@@ -3,10 +3,10 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
 
-  const { prompt, seed = Date.now(), width = 512, height = 512 } = req.query;
+  const { prompt, seed = Date.now(), width = 1280, height = 720, model = 'turbo' } = req.query;
   if (!prompt) { res.status(400).json({ error: 'prompt required' }); return; }
 
-  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=flux`;
+  const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=${width}&height=${height}&nologo=true&seed=${seed}&model=${model}`;
 
   try {
     const response = await fetch(url);
