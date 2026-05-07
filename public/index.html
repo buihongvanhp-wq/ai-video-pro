@@ -1064,62 +1064,286 @@ function prefillGenTable(){
 
 async function startGen(){
   if(!SCENES.length){showToast('Tạo kịch bản trước!','info');return;}
-  const btn = document.getElementById('startGenBtn');
-  document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang render...';
+  const btn=document.getElementById('startGenBtn');
+  document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang tạo ảnh...';
   btn.disabled=true;
   document.getElementById('genResults').style.display='none';
+  prefillGenTable();
   try {
-    for(const s of SCENES){
-      setStat(s.id,'run',0);
-      for(let p=15;p<=80;p+=13){setStat(s.id,'run',p);await sleep(180);}
-      const imgWrap=document.getElementById('gimg'+s.id);
-      if(!imgWrap) continue;
-      imgWrap.style.display='block';
-      const sceneEmojis2=['🌅','🎬','⚡','🏆','🌈','🎭','🌊','🌿'];
-      imgWrap.innerHTML=`
-        <div style="aspect-ratio:16/9;background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;border:1px solid var(--b1)">
-          <div style="font-size:40px">${sceneEmojis2[(s.id-1)%8]}</div>
-          <div style="font-size:13px;font-weight:700;color:#1a2340;text-align:center">${s.title}</div>
-          <div style="font-size:11px;color:#4a5878;text-align:center;line-height:1.5">${s.narration}</div>
-          <div style="font-size:9px;color:#8a9ab8;background:#fff;border:1px solid #dde3f0;border-radius:6px;padding:5px 8px;width:100%;word-break:break-all;line-height:1.4;font-family:monospace">${s.prompt.slice(0,100)}...</div>
-        </div>`;
-      setStat(s.id,'done',100);
-      showToast('✅ Cảnh '+s.id+' xong!','ok');
-      await sleep(300);
-    }
-    document.getElementById('genResults').style.display='block';
-    const emj2=['🌅','🎬','⚡','🏆','🌈','🎭','🌊','🌿'];
-    document.getElementById('resultImages').innerHTML=SCENES.map(s=>`
-      <div style="margin-bottom:14px">
-        <div style="font-size:12px;font-weight:700;color:var(--t2);margin-bottom:6px">Cảnh ${s.id}: ${s.title}</div>
-        <div style="aspect-ratio:16/9;background:linear-gradient(135deg,#dbeafe,#ede9fe);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:14px;border:1px solid var(--b1);margin-bottom:6px">
-          <div style="font-size:40px">${emj2[(s.id-1)%emj2.length]}</div>
-          <div style="font-size:13px;font-weight:700;color:var(--t1)">${s.title}</div>
-          <div style="font-size:11px;color:var(--t2);text-align:center;line-height:1.5">${s.narration}</div>
-        </div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);background:var(--s2);border:1px solid var(--b1);border-radius:8px;padding:8px 10px;line-height:1.5;word-break:break-all;margin-bottom:6px">${s.prompt}</div>
-        <div style="display:flex;gap:6px">
-          <button data-prompt="${s.id}" onclick="copyScenePrompt(this)" style="flex:1;padding:6px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;font-size:11px;font-weight:700;color:var(--blue);cursor:pointer;font-family:inherit">📋 Copy prompt cảnh ${s.id}</button>
-          <a href="https://www.bing.com/images/create" target="_blank" style="flex:1;padding:6px;background:var(--s1);border:1px solid var(--b1);border-radius:8px;font-size:11px;font-weight:700;color:var(--t2);text-align:center;text-decoration:none">🖼 Tạo ảnh →</a>
-        </div>
-      </div>`).join('');
-    document.getElementById('startGenTxt').textContent='🔄 Render lại';
-    showToast('🎬 Tất cả cảnh đã render!','ok');
+    await Promise.all(SCENES.map(s=>genSceneImage(s)));
+    showGenResults();
+    document.getElementById('startGenTxt').textContent='🔄 Tạo lại';
+    showToast('🎬 '+SCENES.length+' cảnh đã xong!','ok');
     document.getElementById('genResults').scrollIntoView({behavior:'smooth'});
   } catch(err) {
     document.getElementById('startGenTxt').textContent='🚀 Bắt đầu tạo video';
     showToast('Lỗi: '+err.message,'info');
-  } finally {
-    btn.disabled=false;
+  } finally { btn.disabled=false; }
+}
+
+async function genSceneImage(s) {
+  setStat(s.id,'run',10);
+  const seed=Math.floor(Math.random()*99999);
+  const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(s.prompt)}?width=1280&height=720&seed=${seed}&nologo=true&model=turbo`;
+  let prog=10;
+  const iv=setInterval(()=>{ prog=Math.min(prog+7,88); setStat(s.id,'run',prog); },3000);
+  try {
+    await new Promise((res,rej)=>{
+      const t=setTimeout(()=>rej(new Error('Timeout 120s')),120000);
+      const img=new Image(); img.crossOrigin='anonymous';
+      img.onload=()=>{clearTimeout(t);res();};
+      img.onerror=()=>{clearTimeout(t);rej(new Error('Không tải được ảnh'));};
+      img.src=url;
+    });
+    s.imgUrl=url; clearInterval(iv); setStat(s.id,'done',100);
+    const w=document.getElementById('gimg'+s.id);
+    if(w){w.style.display='block';w.innerHTML=`<img src="${url}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:9px;border:1px solid var(--b1)">`;}
+    showToast('✅ Cảnh '+s.id+' xong!','ok');
+  } catch(err) {
+    clearInterval(iv); setStat(s.id,'err',0); s.imgUrl=null;
+    const w=document.getElementById('gimg'+s.id);
+    if(w){w.style.display='block';w.innerHTML=`<div style="padding:14px;text-align:center;color:var(--red);font-size:12px;background:rgba(220,38,38,.05);border-radius:9px">❌ Cảnh ${s.id}: ${err.message}<br><span style="color:var(--t3);font-size:10px">Thử lại hoặc copy prompt để dùng Bing/Ideogram</span></div>`;}
   }
+}
+
+function showGenResults() {
+  const el=document.getElementById('genResults');
+  el.style.display='block';
+  el.innerHTML=`
+  <div class="card">
+    <div class="card-head">
+      <div class="cbadge" style="background:var(--green);font-size:16px">✓</div>
+      <div><div class="ctitle">✅ Ảnh ${SCENES.length} cảnh sẵn sàng</div><div class="csub">Ghép video tự động · Tải ảnh · Copy prompts</div></div>
+    </div>
+    <div class="cbody">
+      <div style="background:linear-gradient(135deg,rgba(37,99,235,.07),rgba(124,58,237,.07));border:1.5px solid rgba(37,99,235,.2);border-radius:13px;padding:14px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:3px">🎬 Ghép video tự động</div>
+        <div style="font-size:11px;color:var(--t2);margin-bottom:12px">Slideshow ${SCENES.length} cảnh · Subtitle narration · Xuất .webm · Chạy trong trình duyệt</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+          <button class="btn btn-grad" style="flex:1" onclick="assembleVideo()" id="assembleBtn">🎬 Ghép thành video</button>
+          <button class="btn btn-purple" style="flex:1" onclick="downloadNarration()" id="narrationBtn">🔊 Tải audio</button>
+        </div>
+        <div id="assembleProgress" style="display:none;margin-top:6px">
+          <div style="height:5px;background:var(--s2);border-radius:3px;overflow:hidden;margin-bottom:5px"><div id="assembleBar" style="height:100%;background:var(--grad);border-radius:3px;width:0%;transition:width .4s ease"></div></div>
+          <div style="font-size:11px;color:var(--t2)" id="assembleLbl">Đang ghép...</div>
+        </div>
+        <div id="videoDownloadArea" style="display:none;margin-top:8px">
+          <a id="videoDownloadLink" class="btn btn-green btn-full" style="text-decoration:none" download="ai-video-pro.webm">⬇ Tải video xuống</a>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Ảnh từng cảnh</div>
+      ${SCENES.map(s=>`
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
+          <div style="font-size:12px;font-weight:700;color:var(--t2)">Cảnh ${s.id}: ${s.title}</div>
+          <div style="display:flex;gap:5px">
+            ${s.imgUrl?`<a href="${s.imgUrl}" target="_blank" class="btn btn-sec" style="padding:4px 10px;font-size:10px;text-decoration:none">⬇ Ảnh</a>`:''}
+            <button data-prompt="${s.id}" onclick="copyScenePrompt(this)" class="btn btn-sec" style="padding:4px 10px;font-size:10px">📋 Prompt</button>
+          </div>
+        </div>
+        ${s.imgUrl
+          ?`<img src="${s.imgUrl}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--b1)">`
+          :`<div style="aspect-ratio:16/9;background:var(--s2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--t3)">❌ Không tạo được ảnh cảnh ${s.id}</div>`}
+      </div>`).join('')}
+      <button class="btn btn-sec btn-full" onclick="copyPrompts()" style="margin-top:4px">📋 Copy tất cả prompts (${SCENES.length} cảnh)</button>
+    </div>
+  </div>`;
+}
+
+async function loadImg(url) {
+  if(!url) return null;
+  return new Promise(r=>{
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>r(img); img.onerror=()=>r(null); img.src=url;
+  });
+}
+
+async function assembleVideo() {
+  const btn=document.getElementById('assembleBtn');
+  if(!btn) return;
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span> Đang ghép...';
+  const progEl=document.getElementById('assembleProgress');
+  const barEl=document.getElementById('assembleBar');
+  const lblEl=document.getElementById('assembleLbl');
+  if(progEl) progEl.style.display='block';
+  let audioCtx=null;
+  try {
+    if(!window.MediaRecorder){showToast('Cần Chrome/Edge để ghép video!','info');return;}
+    const elevenKey=document.getElementById('elevenKeyInput')?.value?.trim();
+    audioCtx=new AudioContext();
+    const audioDest=audioCtx.createMediaStreamDestination();
+
+    // ── AUDIO: ElevenLabs per scene hoặc ambient music ──
+    const sceneAudioBufs=[];
+    if(elevenKey){
+      if(lblEl) lblEl.textContent='Đang tạo audio narration (1/'+SCENES.length+')...';
+      if(barEl) barEl.style.width='3%';
+      for(let i=0;i<SCENES.length;i++){
+        if(lblEl) lblEl.textContent=`Tạo audio cảnh ${i+1}/${SCENES.length}...`;
+        if(barEl) barEl.style.width=(3+(i/SCENES.length)*12)+'%';
+        try {
+          const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({text:SCENES[i].narration,voice_id:'21m00Tcm4TlvDq8ikWAM',api_key:elevenKey})});
+          if(!r.ok) throw new Error(r.status);
+          const ab=await (await r.blob()).arrayBuffer();
+          sceneAudioBufs.push(await audioCtx.decodeAudioData(ab));
+        } catch(e){ sceneAudioBufs.push(null); }
+      }
+    } else {
+      // Ambient background music (no key needed)
+      SCENES.forEach(()=>sceneAudioBufs.push(null));
+      startAmbientMusic(audioCtx, audioDest, SCENES.length*4.5);
+    }
+
+    // ── CANVAS setup ──
+    const canvas=document.createElement('canvas');
+    canvas.width=1280; canvas.height=720;
+    const ctx=canvas.getContext('2d');
+    if(lblEl) lblEl.textContent='Đang tải ảnh...';
+    if(barEl) barEl.style.width='15%';
+    const imgs=await Promise.all(SCENES.map(s=>loadImg(s.imgUrl)));
+
+    // ── MEDIA RECORDER: video + audio stream ──
+    const videoStream=canvas.captureStream(30);
+    const combined=new MediaStream([...videoStream.getVideoTracks(),...audioDest.stream.getAudioTracks()]);
+    const mimeType=['video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'].find(t=>MediaRecorder.isTypeSupported(t))||'video/webm';
+    const recorder=new MediaRecorder(combined,{mimeType,videoBitsPerSecond:8000000});
+    const chunks=[];
+    recorder.ondataavailable=e=>{if(e.data.size>0)chunks.push(e.data);};
+    recorder.start(200);
+    if(audioCtx.state==='suspended') await audioCtx.resume();
+
+    // ── RENDER scenes ──
+    const FADE_MS=500;
+    for(let i=0;i<SCENES.length;i++){
+      const s=SCENES[i], img=imgs[i], audioBuf=sceneAudioBufs[i];
+      if(barEl) barEl.style.width=(15+i/SCENES.length*72)+'%';
+      if(lblEl) lblEl.textContent=`Ghép cảnh ${s.id}/${SCENES.length}${elevenKey?' (có audio)':''}...`;
+
+      // Play per-scene narration audio
+      let sceneDuration=3500;
+      if(audioBuf){
+        const src=audioCtx.createBufferSource();
+        src.buffer=audioBuf;
+        src.connect(audioDest);
+        src.start();
+        sceneDuration=Math.max(3500, audioBuf.duration*1000+400);
+      }
+
+      const drawFrame=()=>{
+        if(img){ctx.drawImage(img,0,0,1280,720);}
+        else{ctx.fillStyle='#1a2340';ctx.fillRect(0,0,1280,720);}
+        // Subtitle bar
+        ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,616,1280,104);
+        ctx.textAlign='left';
+        ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.font='600 15px sans-serif';
+        ctx.fillText(`Cảnh ${s.id}/${SCENES.length} · ${s.title}`,38,641);
+        ctx.fillStyle='#ffffff'; ctx.font='500 20px sans-serif';
+        const nar=s.narration.length>72?s.narration.slice(0,72)+'…':s.narration;
+        ctx.fillText('"'+nar+'"',38,672);
+        // Audio indicator
+        if(elevenKey&&audioBuf){ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='13px sans-serif';ctx.fillText('🔊',1230,672);}
+      };
+      let t0=Date.now();
+      while(Date.now()-t0<sceneDuration){drawFrame();await new Promise(r=>requestAnimationFrame(r));}
+      // Fade to black
+      let t1=Date.now();
+      while(Date.now()-t1<FADE_MS){
+        drawFrame(); const a=(Date.now()-t1)/FADE_MS;
+        ctx.fillStyle=`rgba(0,0,0,${a})`; ctx.fillRect(0,0,1280,720);
+        await new Promise(r=>requestAnimationFrame(r));
+      }
+    }
+
+    // End card
+    ctx.fillStyle='#0f172a'; ctx.fillRect(0,0,1280,720);
+    ctx.textAlign='center';
+    ctx.fillStyle='#ffffff'; ctx.font='bold 44px sans-serif'; ctx.fillText('AI Video Pro',640,325);
+    ctx.fillStyle='rgba(255,255,255,0.45)'; ctx.font='20px sans-serif'; ctx.fillText('ai-video-pro.vercel.app',640,374);
+    await new Promise(r=>setTimeout(r,2200));
+
+    recorder.stop();
+    if(barEl) barEl.style.width='95%';
+    if(lblEl) lblEl.textContent='Đang xuất file...';
+    await new Promise(r=>{recorder.onstop=r;});
+    audioCtx.close(); audioCtx=null;
+
+    const blob=new Blob(chunks,{type:mimeType});
+    const url=URL.createObjectURL(blob);
+    if(barEl) barEl.style.width='100%';
+    const sizeMB=Math.round(blob.size/1024/1024*10)/10;
+    if(lblEl) lblEl.textContent=`✅ Video${elevenKey?' + audio':' + nhạc nền'} · ${sizeMB} MB · Sẵn sàng tải!`;
+    const dlArea=document.getElementById('videoDownloadArea');
+    const dlLink=document.getElementById('videoDownloadLink');
+    if(dlArea&&dlLink){dlLink.href=url; dlArea.style.display='block';}
+    showToast('🎬 Video hoàn chỉnh đã tạo xong!','ok');
+  } catch(err) {
+    if(audioCtx) audioCtx.close().catch(()=>{});
+    const lblEl2=document.getElementById('assembleLbl');
+    if(lblEl2) lblEl2.textContent='❌ Lỗi: '+err.message;
+    showToast('Lỗi ghép video: '+err.message,'info');
+    console.error(err);
+  } finally {
+    btn.disabled=false; btn.textContent='🔄 Ghép lại';
+  }
+}
+
+function startAmbientMusic(audioCtx, dest, durationSec) {
+  const master=audioCtx.createGain();
+  master.gain.setValueAtTime(0,0);
+  master.gain.linearRampToValueAtTime(0.055, 2);
+  master.gain.setValueAtTime(0.055, durationSec-1.5);
+  master.gain.linearRampToValueAtTime(0, durationSec+0.5);
+  master.connect(dest);
+  const lpf=audioCtx.createBiquadFilter();
+  lpf.type='lowpass'; lpf.frequency.setValueAtTime(700,0); lpf.Q.setValueAtTime(0.8,0);
+  lpf.connect(master);
+  // Gentle pad chords cycling every 4.5s
+  const chords=[[261.63,329.63,392],[246.94,311.13,369.99],[220,277.18,349.23],[196,261.63,329.63]];
+  const segLen=durationSec/chords.length;
+  chords.forEach((chord,ci)=>{
+    const t=ci*segLen;
+    chord.forEach(freq=>{
+      const osc=audioCtx.createOscillator(); osc.type='sine';
+      osc.frequency.setValueAtTime(freq,t);
+      const g=audioCtx.createGain();
+      g.gain.setValueAtTime(0,t);
+      g.gain.linearRampToValueAtTime(0.28,t+1.2);
+      g.gain.setValueAtTime(0.28,t+segLen-1.0);
+      g.gain.linearRampToValueAtTime(0,t+segLen);
+      osc.connect(g); g.connect(lpf);
+      osc.start(t); osc.stop(t+segLen+0.3);
+    });
+  });
+}
+
+async function downloadNarration() {
+  const btn=document.getElementById('narrationBtn');
+  if(!btn) return;
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
+  const elevenKey=document.getElementById('elevenKeyInput')?.value?.trim();
+  try {
+    if(elevenKey){
+      const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:narText,voice_id:'21m00Tcm4TlvDq8ikWAM',api_key:elevenKey})});
+      if(!r.ok) throw new Error('ElevenLabs lỗi '+r.status);
+      const blob=await r.blob();
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='narration.mp3'; a.click();
+      showToast('🔊 Audio đã tải xuống!','ok');
+    } else {
+      showToast('Nhập ElevenLabs key ở tab Kịch bản để tải audio MP3','info');
+    }
+  } catch(err){ showToast('Lỗi audio: '+err.message,'info'); }
+  finally{ btn.disabled=false; btn.textContent='🔊 Tải audio'; }
 }
 
 function setStat(id,status,pct){
   const pill=document.getElementById('gst'+id);
   const fill=document.getElementById('gpf'+id);
   const pctEl=document.getElementById('gpc'+id);
+  if(!pill) return;
   if(status==='run'){pill.className='spill sp-r';pill.textContent='Đang tạo';}
   else if(status==='done'){pill.className='spill sp-d';pill.textContent='✓ Xong';}
+  else if(status==='err'){pill.className='spill sp-e';pill.textContent='✗ Lỗi';}
   fill.style.width=pct+'%';
   pctEl.textContent=pct+'%';
 }
