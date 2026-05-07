@@ -1327,18 +1327,29 @@ function startAmbientMusic(audioCtx, dest, durationSec) {
 async function downloadNarration() {
   const btn=document.getElementById('narrationBtn');
   if(!btn) return;
-  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
   const elevenKey=document.getElementById('elevenKeyInput')?.value?.trim();
+  if(!elevenKey){
+    showTab('script');
+    setTimeout(()=>{
+      const inp=document.getElementById('elevenKeyInput');
+      if(!inp) return;
+      inp.scrollIntoView({behavior:'smooth',block:'center'});
+      inp.focus();
+      inp.style.transition='border-color .2s, box-shadow .2s';
+      inp.style.borderColor='var(--blue)';
+      inp.style.boxShadow='0 0 0 4px rgba(37,99,235,.15)';
+      setTimeout(()=>{inp.style.borderColor='';inp.style.boxShadow='';},2500);
+    },300);
+    showToast('🔑 Nhập ElevenLabs API key để tải audio','info');
+    return;
+  }
+  btn.disabled=true; btn.innerHTML='<span class="spin"></span>';
   try {
-    if(elevenKey){
-      const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:narText,voice_id:'21m00Tcm4TlvDq8ikWAM',api_key:elevenKey})});
-      if(!r.ok) throw new Error('ElevenLabs lỗi '+r.status);
-      const blob=await r.blob();
-      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='narration.mp3'; a.click();
-      showToast('🔊 Audio đã tải xuống!','ok');
-    } else {
-      showToast('Nhập ElevenLabs key ở tab Kịch bản để tải audio MP3','info');
-    }
+    const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:narText,voice_id:'21m00Tcm4TlvDq8ikWAM',api_key:elevenKey})});
+    if(!r.ok) throw new Error('ElevenLabs lỗi '+r.status);
+    const blob=await r.blob();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='narration.mp3'; a.click();
+    showToast('🔊 Audio đã tải xuống!','ok');
   } catch(err){ showToast('Lỗi audio: '+err.message,'info'); }
   finally{ btn.disabled=false; btn.textContent='🔊 Tải audio'; }
 }
