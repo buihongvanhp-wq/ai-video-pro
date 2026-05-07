@@ -442,9 +442,22 @@ textarea.inp{resize:none}
       </div>
       <div id="sceneList" class="scene-list"></div>
       <div id="audioBarWrap" style="display:none">
-        <div style="margin-bottom:8px">
-          <div class="lbl">ElevenLabs API Key (tùy chọn — giọng thật)</div>
-          <input class="inp" id="elevenKeyInput" type="password" placeholder="Nhập key để có giọng thật, bỏ qua để dùng giọng browser...">
+        <div style="margin-bottom:12px">
+          <div class="lbl" style="margin-bottom:7px">Chọn giọng đọc</div>
+          <div style="display:flex;gap:7px;margin-bottom:10px">
+            <div id="voiceOptGoogle" onclick="setVoiceOpt('google')" style="flex:1;padding:10px 12px;border-radius:12px;border:2px solid var(--blue);background:rgba(37,99,235,.07);cursor:pointer;text-align:center;transition:all .2s">
+              <div style="font-size:13px;font-weight:700;color:var(--blue)">🌐 Google TTS</div>
+              <div style="font-size:10px;color:var(--t3);margin-top:2px">Miễn phí · Không cần key</div>
+            </div>
+            <div id="voiceOptEleven" onclick="setVoiceOpt('eleven')" style="flex:1;padding:10px 12px;border-radius:12px;border:2px solid var(--b1);background:var(--s2);cursor:pointer;text-align:center;transition:all .2s">
+              <div style="font-size:13px;font-weight:700;color:var(--t2)">🎙 ElevenLabs</div>
+              <div style="font-size:10px;color:var(--t3);margin-top:2px">Chất lượng cao ★</div>
+            </div>
+          </div>
+          <div id="elevenKeyWrap" style="display:none">
+            <div class="lbl">ElevenLabs API Key</div>
+            <input class="inp" id="elevenKeyInput" type="password" placeholder="Dán API key vào đây...">
+          </div>
         </div>
         <div class="audio-bar">
           <button class="audio-btn" onclick="toggleAudio()">▶</button>
@@ -541,6 +554,7 @@ let SCENES = [];
 let narText = '';
 let audioPlaying = false;
 let stepsDone = { chars:false, ideas:false, script:false };
+let voiceProvider = 'google'; // 'google' | 'eleven'
 
 // ═══ TAB NAVIGATION ═══
 function showTab(tab) {
@@ -553,6 +567,28 @@ function showTab(tab) {
   if (tab==='script') syncScriptCharBar();
   if (tab==='gen') prefillGenTable();
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function setVoiceOpt(p) {
+  voiceProvider = p;
+  const gEl=document.getElementById('voiceOptGoogle');
+  const eEl=document.getElementById('voiceOptEleven');
+  const kEl=document.getElementById('elevenKeyWrap');
+  if(!gEl||!eEl) return;
+  if(p==='google'){
+    gEl.style.borderColor='var(--blue)'; gEl.style.background='rgba(37,99,235,.07)';
+    gEl.querySelector('div').style.color='var(--blue)';
+    eEl.style.borderColor='var(--b1)'; eEl.style.background='var(--s2)';
+    eEl.querySelector('div').style.color='var(--t2)';
+    if(kEl) kEl.style.display='none';
+  } else {
+    eEl.style.borderColor='var(--purple)'; eEl.style.background='rgba(124,58,237,.07)';
+    eEl.querySelector('div').style.color='var(--purple)';
+    gEl.style.borderColor='var(--b1)'; gEl.style.background='var(--s2)';
+    gEl.querySelector('div').style.color='var(--t2)';
+    if(kEl) kEl.style.display='block';
+    setTimeout(()=>document.getElementById('elevenKeyInput')?.focus(),100);
+  }
 }
 
 // ═══ CHARACTER SYNC ═══
@@ -1180,9 +1216,9 @@ async function assembleVideo() {
     audioCtx=new AudioContext();
     const audioDest=audioCtx.createMediaStreamDestination();
 
-    // ── AUDIO: ElevenLabs per scene hoặc ambient music ──
+    // ── AUDIO: ElevenLabs hoặc Google TTS per scene ──
     const sceneAudioBufs=[];
-    if(elevenKey){
+    if(voiceProvider==='eleven'&&elevenKey){
       if(lblEl) lblEl.textContent='Đang tạo audio narration (1/'+SCENES.length+')...';
       if(barEl) barEl.style.width='3%';
       for(let i=0;i<SCENES.length;i++){
@@ -1342,7 +1378,8 @@ async function downloadNarration() {
   btn.disabled=true; btn.innerHTML='<span class="spin"></span> Đang tạo...';
   const elevenKey=document.getElementById('elevenKeyInput')?.value?.trim();
   try {
-    if(elevenKey){
+    if(voiceProvider==='eleven'){
+      if(!elevenKey){showToast('Nhập ElevenLabs API key!','info');btn.disabled=false;btn.textContent='🔊 Tải audio';return;}
       // ElevenLabs — giọng thật, full narration 1 request
       const r=await fetch('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({text:narText,voice_id:'21m00Tcm4TlvDq8ikWAM',api_key:elevenKey})});
