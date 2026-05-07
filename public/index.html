@@ -1070,7 +1070,7 @@ async function startGen(){
   document.getElementById('genResults').style.display='none';
   prefillGenTable();
   try {
-    await Promise.all(SCENES.map(s=>genSceneImage(s)));
+    for(const s of SCENES) await genSceneImage(s);
     showGenResults();
     document.getElementById('startGenTxt').textContent='🔄 Tạo lại';
     showToast('🎬 '+SCENES.length+' cảnh đã xong!','ok');
@@ -1081,7 +1081,7 @@ async function startGen(){
   } finally { btn.disabled=false; }
 }
 
-async function genSceneImage(s) {
+async function genSceneImage(s, retry=0) {
   setStat(s.id,'run',10);
   const seed=Math.floor(Math.random()*99999);
   const url=`https://image.pollinations.ai/prompt/${encodeURIComponent(s.prompt)}?width=1280&height=720&seed=${seed}&nologo=true&model=turbo`;
@@ -1089,10 +1089,10 @@ async function genSceneImage(s) {
   const iv=setInterval(()=>{ prog=Math.min(prog+7,88); setStat(s.id,'run',prog); },3000);
   try {
     await new Promise((res,rej)=>{
-      const t=setTimeout(()=>rej(new Error('Timeout 120s')),120000);
+      const t=setTimeout(()=>rej(new Error('Timeout')),120000);
       const img=new Image(); img.crossOrigin='anonymous';
       img.onload=()=>{clearTimeout(t);res();};
-      img.onerror=()=>{clearTimeout(t);rej(new Error('Không tải được ảnh'));};
+      img.onerror=()=>{clearTimeout(t);rej(new Error('Load failed'));};
       img.src=url;
     });
     s.imgUrl=url; clearInterval(iv); setStat(s.id,'done',100);
@@ -1100,9 +1100,16 @@ async function genSceneImage(s) {
     if(w){w.style.display='block';w.innerHTML=`<img src="${url}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:9px;border:1px solid var(--b1)">`;}
     showToast('✅ Cảnh '+s.id+' xong!','ok');
   } catch(err) {
-    clearInterval(iv); setStat(s.id,'err',0); s.imgUrl=null;
+    clearInterval(iv);
+    if(retry<2){
+      setStat(s.id,'run',5);
+      showToast(`🔄 Cảnh ${s.id} thất bại, thử lại (${retry+1}/2)...`,'info');
+      await new Promise(r=>setTimeout(r,2500));
+      return genSceneImage(s, retry+1);
+    }
+    setStat(s.id,'err',0); s.imgUrl=null;
     const w=document.getElementById('gimg'+s.id);
-    if(w){w.style.display='block';w.innerHTML=`<div style="padding:14px;text-align:center;color:var(--red);font-size:12px;background:rgba(220,38,38,.05);border-radius:9px">❌ Cảnh ${s.id}: ${err.message}<br><span style="color:var(--t3);font-size:10px">Thử lại hoặc copy prompt để dùng Bing/Ideogram</span></div>`;}
+    if(w){w.style.display='block';w.innerHTML=`<div style="padding:14px;text-align:center;color:var(--red);font-size:12px;background:rgba(220,38,38,.05);border-radius:9px">❌ Cảnh ${s.id} thất bại sau 3 lần thử<br><span style="color:var(--t3);font-size:10px">Copy prompt → dùng Bing/Ideogram</span></div>`;}
   }
 }
 
