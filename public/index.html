@@ -189,6 +189,25 @@ textarea.inp{resize:none}
 .style-chip:hover{border-color:var(--purple);color:var(--purple)}
 .style-chip.active{background:rgba(124,58,237,.1);border-color:var(--purple);color:var(--purple)}
 
+/* Gen mode tabs */
+.gen-mode-bar{display:flex;border-bottom:1px solid var(--b1);background:var(--s1)}
+.gen-mode-tab{flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:10px 8px;font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s}
+.gen-mode-tab.active{color:var(--blue);border-bottom-color:var(--blue);background:rgba(37,99,235,.03)}
+
+/* Upload zone */
+.upload-zone{border:2px dashed var(--b2);border-radius:13px;padding:20px 16px;text-align:center;cursor:pointer;transition:all .2s;background:var(--s2);position:relative}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--blue);background:rgba(37,99,235,.04)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-zone-img{width:100%;max-height:220px;object-fit:contain;border-radius:9px;margin-top:8px;display:none}
+
+/* Food character chips */
+.food-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;background:linear-gradient(135deg,rgba(220,38,38,.07),rgba(234,88,12,.07));border:1.5px solid rgba(220,38,38,.2);border-radius:20px;font-size:11px;font-weight:600;color:#b91c1c;cursor:pointer;transition:all .2s;white-space:nowrap}
+.food-chip:hover{border-color:#dc2626;background:rgba(220,38,38,.12)}
+
+/* I2V result */
+.i2v-result{margin-top:12px;display:none}
+.i2v-result video{width:100%;border-radius:12px;border:1px solid var(--b1)}
+
 /* Spinner */
 .spin{width:14px;height:14px;border:2px solid rgba(37,99,235,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;display:inline-block;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -485,43 +504,121 @@ textarea.inp{resize:none}
     <div class="card-head">
       <div class="cbadge" style="background:linear-gradient(135deg,#d97706,#dc2626)">4</div>
       <div>
-        <div class="ctitle">🎬 Tạo video từ prompt</div>
-        <div class="csub">Text-to-Video (fal.ai) · Slideshow fallback (Pollinations.ai)</div>
+        <div class="ctitle">🎬 Tạo video AI</div>
+        <div class="csub">Text-to-Video · Image-to-Video · fal.ai (Wan 2.1 / Kling 1.6)</div>
       </div>
     </div>
-    <!-- fal.ai settings -->
-    <div style="padding:13px 15px;border-bottom:1px solid var(--b1);background:var(--s2)">
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:9px">
-        <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">⚡</div>
-        <div style="font-size:12px;font-weight:700;color:var(--t1)">fal.ai API Key</div>
-        <a href="https://fal.ai/dashboard/keys" target="_blank" style="margin-left:auto;font-size:10px;color:var(--blue);font-weight:600;text-decoration:none">Lấy key → fal.ai ($25 free)</a>
+
+    <!-- fal.ai key — shared cho cả 2 mode -->
+    <div style="padding:11px 15px;border-bottom:1px solid var(--b1);background:var(--s2)">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0">⚡</div>
+        <div style="font-size:11px;font-weight:700;color:var(--t1)">fal.ai API Key</div>
+        <a href="https://fal.ai/dashboard/keys" target="_blank" style="margin-left:auto;font-size:10px;color:var(--blue);font-weight:600;text-decoration:none">Lấy key ($25 free) →</a>
       </div>
-      <div style="display:flex;gap:6px;margin-bottom:9px">
+      <div style="display:flex;gap:6px">
         <input class="inp" id="falKeyInput" type="password" placeholder="Dán fal.ai key vào đây..." style="flex:1;font-size:12px" oninput="saveFalKey(this.value)">
         <button class="btn btn-sec" style="padding:9px 12px;font-size:12px;flex-shrink:0" onclick="testFalKey()">🔑 Test</button>
       </div>
-      <div class="lbl" style="margin-bottom:6px">Model</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <span class="style-chip active" id="modelChipWan" onclick="setVideoModel('fal-ai/wan/v2.1/t2v/480p',this)">⚡ Wan 2.1 480p · ~$0.06/clip</span>
-        <span class="style-chip" id="modelChipKling" onclick="setVideoModel('fal-ai/kling-video/v1.6/standard/text-to-video',this)">🎬 Kling 1.6 · ~$0.28/clip</span>
-      </div>
-      <div style="font-size:10px;color:var(--t3);margin-top:6px">Không có key → tạo slideshow ảnh miễn phí (Pollinations.ai)</div>
     </div>
-    <div class="cbody" style="padding:0">
-      <div class="gen-thead">
-        <div class="gen-th"></div>
-        <div class="gen-th">STT</div>
-        <div class="gen-th">Trạng thái</div>
-        <div class="gen-th">Prompt</div>
-        <div class="gen-th">Tiến độ</div>
-      </div>
-      <div id="genTableBody"></div>
+
+    <!-- Mode toggle: T2V / I2V -->
+    <div class="gen-mode-bar">
+      <div class="gen-mode-tab active" id="modeTabT2V" onclick="setGenMode('t2v')">🎬 Text-to-Video</div>
+      <div class="gen-mode-tab" id="modeTabI2V" onclick="setGenMode('i2v')">🖼️ Image-to-Video</div>
     </div>
-    <div class="cfoot">
-      <button class="btn btn-sec" onclick="showTab('script')">← Quay lại</button>
-      <button class="btn btn-grad" style="flex:1" onclick="startGen()" id="startGenBtn">
-        <span id="startGenTxt">🚀 Bắt đầu tạo video</span>
-      </button>
+
+    <!-- ══ T2V Panel ══ -->
+    <div id="t2vPanel">
+      <div style="padding:11px 15px;border-bottom:1px solid var(--b1);background:var(--s2)">
+        <div class="lbl" style="margin-bottom:6px">T2V Model</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="style-chip active" id="modelChipWan" onclick="setVideoModel('fal-ai/wan/v2.1/t2v/480p',this)">⚡ Wan 2.1 480p · ~$0.06/clip</span>
+          <span class="style-chip" id="modelChipKling" onclick="setVideoModel('fal-ai/kling-video/v1.6/standard/text-to-video',this)">🎬 Kling 1.6 · ~$0.28/clip</span>
+        </div>
+        <div style="font-size:10px;color:var(--t3);margin-top:5px">Không có key → slideshow ảnh miễn phí</div>
+      </div>
+      <div class="cbody" style="padding:0">
+        <div class="gen-thead">
+          <div class="gen-th"></div>
+          <div class="gen-th">STT</div>
+          <div class="gen-th">Trạng thái</div>
+          <div class="gen-th">Prompt</div>
+          <div class="gen-th">Tiến độ</div>
+        </div>
+        <div id="genTableBody"></div>
+      </div>
+      <div class="cfoot">
+        <button class="btn btn-sec" onclick="showTab('script')">← Kịch bản</button>
+        <button class="btn btn-grad" style="flex:1" onclick="startGen()" id="startGenBtn">
+          <span id="startGenTxt">🚀 Bắt đầu tạo video</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ══ I2V Panel ══ -->
+    <div id="i2vPanel" style="display:none">
+      <div style="padding:11px 15px;border-bottom:1px solid var(--b1);background:var(--s2)">
+        <div class="lbl" style="margin-bottom:6px">I2V Model</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <span class="style-chip active" id="i2vChipKling" onclick="setI2VModel('fal-ai/kling-video/v1.6/standard/image-to-video',this)">🎬 Kling 1.6 i2v · ~$0.28/clip</span>
+          <span class="style-chip" id="i2vChipWan" onclick="setI2VModel('fal-ai/wan/v2.1/i2v/480p',this)">⚡ Wan 2.1 i2v · ~$0.06/clip</span>
+        </div>
+      </div>
+      <div class="cbody">
+        <!-- Upload zone -->
+        <div class="lbl" style="margin-bottom:6px">📸 Ảnh nhân vật (gà, trái cây, thức ăn...)</div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('charImgInput').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleImgDrop(event)">
+          <input type="file" id="charImgInput" accept="image/*" style="display:none" onchange="handleCharImageUpload(event)">
+          <div id="uploadPlaceholder">
+            <div style="font-size:28px;margin-bottom:6px">🖼️</div>
+            <div style="font-size:13px;font-weight:700;color:var(--t2)">Nhấn để chọn ảnh</div>
+            <div style="font-size:11px;color:var(--t3);margin-top:3px">hoặc kéo thả ảnh vào đây · JPG/PNG/WEBP</div>
+          </div>
+          <img id="charImgPreview" class="upload-zone-img">
+        </div>
+
+        <!-- Animation prompt -->
+        <div class="lbl" style="margin-top:12px;margin-bottom:6px">✍️ Mô tả chuyển động / hành động</div>
+        <textarea class="inp" id="i2vPrompt" rows="3" placeholder="VD: the character is talking and smiling, mouth moving, eyes blinking, gentle body movement, cinematic"></textarea>
+
+        <!-- Food character quick prompts -->
+        <div style="margin-top:8px;margin-bottom:4px;font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px">🔥 Prompt nhanh — Viral Food Characters</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px">
+          <span class="food-chip" onclick="setI2VPrompt(this,'talking and smiling, mouth moving naturally, eyes blinking, gentle swaying, cute expression, ASMR style')">🗣️ Nói chuyện</span>
+          <span class="food-chip" onclick="setI2VPrompt(this,'eating and chewing happily, mouth opening and closing, eyes squinting with joy, ASMR close-up')">😋 Đang ăn</span>
+          <span class="food-chip" onclick="setI2VPrompt(this,'laughing and giggling, body shaking, eyes closed with laughter, very expressive and cute')">😂 Cười</span>
+          <span class="food-chip" onclick="setI2VPrompt(this,'cooking tips demonstration, nodding head, pointing with hand, explaining enthusiastically')">👨‍🍳 Nấu ăn</span>
+          <span class="food-chip" onclick="setI2VPrompt(this,'dramatic crying, tears falling, very emotional soap opera style, slow motion')">😢 Drama</span>
+          <span class="food-chip" onclick="setI2VPrompt(this,'dancing and grooving to music, body moving rhythmically, happy and energetic')">💃 Nhảy</span>
+        </div>
+
+        <!-- T2V food char prompts -->
+        <div style="margin-top:12px;border-top:1px solid var(--b1);padding-top:10px">
+          <div style="font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">🎬 Tạo ảnh nhân vật bằng AI (copy prompt → Midjourney/Flux)</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            <span class="food-chip" onclick="copyFoodPrompt('an anthropomorphic strawberry with cute human eyes and wide smile, Pixar 3D style, white background, high detail')">🍓 Dâu tây</span>
+            <span class="food-chip" onclick="copyFoodPrompt('an anthropomorphic raw chicken with cute round eyes and chubby cheeks, sitting in a cooking pot, Pixar 3D render, photorealistic')">🐔 Gà luộc</span>
+            <span class="food-chip" onclick="copyFoodPrompt('an anthropomorphic banana with tiny arms and cute face, happy expression, 3D cartoon Pixar style')">🍌 Chuối</span>
+            <span class="food-chip" onclick="copyFoodPrompt('an anthropomorphic watermelon slice with big eyes, red flesh visible, cute smile, 3D Pixar animation style')">🍉 Dưa hấu</span>
+            <span class="food-chip" onclick="copyFoodPrompt('an anthropomorphic avocado with pit as belly button, cute face, waving hand, 3D cartoon style, vibrant colors')">🥑 Bơ</span>
+          </div>
+        </div>
+      </div>
+      <div class="cfoot">
+        <button class="btn btn-sec" onclick="showTab('script')">← Kịch bản</button>
+        <button class="btn btn-grad" style="flex:1" onclick="startI2VGen()" id="i2vGenBtn">
+          <span id="i2vGenTxt">✨ Animate nhân vật</span>
+        </button>
+      </div>
+      <!-- I2V result -->
+      <div class="i2v-result" id="i2vResult">
+        <div style="padding:14px 15px;border-top:1px solid var(--b1)">
+          <div style="font-size:12px;font-weight:700;color:var(--t1);margin-bottom:8px">🎬 Video đã tạo</div>
+          <div id="i2vVideoWrap"></div>
+          <button class="btn btn-sec btn-full" style="margin-top:8px;font-size:12px" onclick="downloadI2VVideo()">⬇️ Tải video</button>
+        </div>
+      </div>
     </div>
   </div>
   <!-- Results -->
@@ -574,13 +671,64 @@ let audioPlaying = false;
 let stepsDone = { chars:false, ideas:false, script:false };
 let voiceProvider = 'google'; // 'google' | 'eleven'
 let videoModel = 'fal-ai/wan/v2.1/t2v/480p';
+let i2vModel = 'fal-ai/kling-video/v1.6/standard/image-to-video';
+let genMode = 't2v'; // 't2v' | 'i2v'
+let charImageDataUrl = null;
+let i2vVideoUrl = null;
 
 function setVideoModel(m, el) {
   videoModel = m;
   document.querySelectorAll('#modelChipWan,#modelChipKling').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
 }
+function setI2VModel(m, el) {
+  i2vModel = m;
+  document.querySelectorAll('#i2vChipKling,#i2vChipWan').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+function setGenMode(mode) {
+  genMode = mode;
+  document.getElementById('modeTabT2V').classList.toggle('active', mode==='t2v');
+  document.getElementById('modeTabI2V').classList.toggle('active', mode==='i2v');
+  document.getElementById('t2vPanel').style.display = mode==='t2v' ? '' : 'none';
+  document.getElementById('i2vPanel').style.display = mode==='i2v' ? '' : 'none';
+}
+function setI2VPrompt(el, text) {
+  document.getElementById('i2vPrompt').value = text;
+  document.querySelectorAll('.food-chip').forEach(c=>c.style.fontWeight='600');
+  el.style.fontWeight = '800';
+}
+function copyFoodPrompt(text) {
+  navigator.clipboard?.writeText(text).then(()=>showToast('📋 Đã copy prompt nhân vật!','ok'))
+    .catch(()=>{ const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();showToast('📋 Đã copy!','ok'); });
+}
+function handleCharImageUpload(e) {
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    charImageDataUrl = ev.target.result;
+    const prev = document.getElementById('charImgPreview');
+    const ph = document.getElementById('uploadPlaceholder');
+    prev.src = charImageDataUrl; prev.style.display='block'; ph.style.display='none';
+    showToast('✅ Ảnh đã tải lên!','ok');
+  };
+  reader.readAsDataURL(file);
+}
+function handleImgDrop(e) {
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if(file && file.type.startsWith('image/')) {
+    const inp = document.getElementById('charImgInput');
+    const dt = new DataTransfer(); dt.items.add(file); inp.files = dt.files;
+    handleCharImageUpload({target: inp});
+  }
+}
 function saveFalKey(v){ try{localStorage.setItem('falKey',v);}catch(e){} }
+function downloadI2VVideo() {
+  if(!i2vVideoUrl){showToast('Chưa có video!','info');return;}
+  const a=document.createElement('a'); a.href=i2vVideoUrl; a.download='i2v-video.mp4'; a.target='_blank'; a.click();
+}
 
 async function testFalKey(){
   const k=(document.getElementById('falKeyInput')?.value||'').trim()||localStorage.getItem('falKey')||'';
@@ -1244,6 +1392,57 @@ async function pollVideoJob(s,requestId,falKey){
     } catch(e){ /* tiếp tục poll */ }
   }
   setStat(s.id,'err',0);
+}
+
+async function startI2VGen() {
+  const falKey=(document.getElementById('falKeyInput')?.value||'').trim()||localStorage.getItem('falKey')||'';
+  if(!falKey){ showToast('Nhập fal.ai key trước!','info'); return; }
+  if(!charImageDataUrl){ showToast('Chọn ảnh nhân vật trước!','info'); return; }
+  const prompt=(document.getElementById('i2vPrompt')?.value||'').trim()||'talking and smiling, mouth moving, eyes blinking, gentle movement';
+  const btn=document.getElementById('i2vGenBtn');
+  document.getElementById('i2vGenTxt').innerHTML='<span class="spin"></span> Đang submit...';
+  btn.disabled=true;
+  document.getElementById('i2vResult').style.display='none';
+  try {
+    showToast('📤 Đang submit job lên fal.ai...','info');
+    const r=await fetch('/api/video-i2v',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({image_url:charImageDataUrl,prompt,fal_key:falKey,model:i2vModel})});
+    const d=await r.json();
+    if(!d.request_id) throw new Error(d.error||'Không nhận được request_id');
+    showToast('⏳ Đang render (~2-5 phút)...','info');
+    document.getElementById('i2vGenTxt').innerHTML='<span class="spin"></span> Đang render...';
+    // Poll status
+    const maxMs=400000; const start=Date.now(); let prog=5;
+    while(Date.now()-start<maxMs){
+      await new Promise(r=>setTimeout(r,7000));
+      try{
+        const sr=await fetch('/api/video-status',{method:'POST',headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({request_id:d.request_id,fal_key:falKey,model:i2vModel})});
+        const sd=await sr.json();
+        if(sd.status==='COMPLETED'&&sd.video_url){
+          i2vVideoUrl=sd.video_url;
+          const wrap=document.getElementById('i2vVideoWrap');
+          wrap.innerHTML=`<video src="${sd.video_url}" controls loop playsinline autoplay muted style="width:100%;border-radius:10px;border:1px solid var(--b1)"></video>`;
+          document.getElementById('i2vResult').style.display='block';
+          document.getElementById('i2vResult').scrollIntoView({behavior:'smooth'});
+          showToast('🎬 Video đã xong!','ok');
+          document.getElementById('i2vGenTxt').textContent='✨ Animate lại';
+          return;
+        } else if(sd.status==='FAILED'){
+          throw new Error(sd.error||'Generation failed');
+        }
+        prog=Math.min(prog+3,88);
+        const info=sd.queue_position!=null?`Queue #${sd.queue_position}`:`${prog}%`;
+        document.getElementById('i2vGenTxt').innerHTML=`<span class="spin"></span> ${info}`;
+      }catch(pe){
+        if(pe.message&&pe.message!=='Failed to fetch') throw pe;
+      }
+    }
+    throw new Error('Timeout sau 7 phút');
+  } catch(err){
+    showToast('❌ '+err.message,'info');
+    document.getElementById('i2vGenTxt').textContent='✨ Animate nhân vật';
+  } finally { btn.disabled=false; }
 }
 
 async function genSceneImage(s, retry=0) {
