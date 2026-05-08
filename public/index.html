@@ -486,8 +486,23 @@ textarea.inp{resize:none}
       <div class="cbadge" style="background:linear-gradient(135deg,#d97706,#dc2626)">4</div>
       <div>
         <div class="ctitle">🎬 Tạo video từ prompt</div>
-        <div class="csub">Render từng cảnh · Pollinations.ai · Xem trước kết quả</div>
+        <div class="csub">Text-to-Video (fal.ai) · Slideshow fallback (Pollinations.ai)</div>
       </div>
+    </div>
+    <!-- fal.ai settings -->
+    <div style="padding:13px 15px;border-bottom:1px solid var(--b1);background:var(--s2)">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:9px">
+        <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#7c3aed,#2563eb);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">⚡</div>
+        <div style="font-size:12px;font-weight:700;color:var(--t1)">fal.ai API Key</div>
+        <a href="https://fal.ai/dashboard/keys" target="_blank" style="margin-left:auto;font-size:10px;color:var(--blue);font-weight:600;text-decoration:none">Lấy key → fal.ai ($25 free)</a>
+      </div>
+      <input class="inp" id="falKeyInput" type="password" placeholder="Dán fal.ai key vào đây... để tạo video thật có chuyển động" style="margin-bottom:9px;font-size:12px" oninput="saveFalKey(this.value)">
+      <div class="lbl" style="margin-bottom:6px">Model</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="style-chip active" id="modelChipWan" onclick="setVideoModel('fal-ai/wan/v2.1/t2v/480p',this)">⚡ Wan 2.1 480p · ~$0.06/clip</span>
+        <span class="style-chip" id="modelChipKling" onclick="setVideoModel('fal-ai/kling-video/v1.6/standard/text-to-video',this)">🎬 Kling 1.6 · ~$0.28/clip</span>
+      </div>
+      <div style="font-size:10px;color:var(--t3);margin-top:6px">Không có key → tạo slideshow ảnh miễn phí (Pollinations.ai)</div>
     </div>
     <div class="cbody" style="padding:0">
       <div class="gen-thead">
@@ -555,6 +570,14 @@ let narText = '';
 let audioPlaying = false;
 let stepsDone = { chars:false, ideas:false, script:false };
 let voiceProvider = 'google'; // 'google' | 'eleven'
+let videoModel = 'fal-ai/wan/v2.1/t2v/480p';
+
+function setVideoModel(m, el) {
+  videoModel = m;
+  document.querySelectorAll('#modelChipWan,#modelChipKling').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+}
+function saveFalKey(v){ try{localStorage.setItem('falKey',v);}catch(e){} }
 
 // ═══ TAB NAVIGATION ═══
 function showTab(tab) {
@@ -1100,6 +1123,9 @@ function prefillGenTable(){
 
 async function startGen(){
   if(!SCENES.length){showToast('Tạo kịch bản trước!','info');return;}
+  const falKey=(document.getElementById('falKeyInput')?.value||'').trim()||localStorage.getItem('falKey')||'';
+  if(falKey){ await startVideoGen(falKey); return; }
+  // Fallback: slideshow ảnh
   const btn=document.getElementById('startGenBtn');
   document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang tạo ảnh...';
   btn.disabled=true;
@@ -1109,12 +1135,81 @@ async function startGen(){
     for(const s of SCENES) await genSceneImage(s);
     showGenResults();
     document.getElementById('startGenTxt').textContent='🔄 Tạo lại';
-    showToast('🎬 '+SCENES.length+' cảnh đã xong!','ok');
+    showToast('🎬 '+SCENES.length+' ảnh đã xong!','ok');
     document.getElementById('genResults').scrollIntoView({behavior:'smooth'});
   } catch(err) {
     document.getElementById('startGenTxt').textContent='🚀 Bắt đầu tạo video';
     showToast('Lỗi: '+err.message,'info');
   } finally { btn.disabled=false; }
+}
+
+async function startVideoGen(falKey) {
+  const btn=document.getElementById('startGenBtn');
+  document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang submit...';
+  btn.disabled=true;
+  document.getElementById('genResults').style.display='none';
+  prefillGenTable();
+  try {
+    showToast('📤 Đang submit '+SCENES.length+' jobs lên fal.ai...','info');
+    // Submit tất cả song song
+    const results=await Promise.allSettled(SCENES.map(s=>submitVideoJob(s,falKey)));
+    const requestIds=results.map((r,i)=>{
+      if(r.status==='fulfilled') return r.value;
+      setStat(SCENES[i].id,'err',0); return null;
+    });
+    document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang xử lý...';
+    showToast('⏳ Đang chờ fal.ai render (~1-3 phút)...','info');
+    // Poll tất cả song song
+    await Promise.allSettled(SCENES.map((s,i)=>requestIds[i]?pollVideoJob(s,requestIds[i],falKey):null));
+    showGenResults();
+    document.getElementById('startGenTxt').textContent='🔄 Tạo lại';
+    showToast('🎬 Video đã tạo xong!','ok');
+    document.getElementById('genResults').scrollIntoView({behavior:'smooth'});
+  } catch(err) {
+    document.getElementById('startGenTxt').textContent='🚀 Bắt đầu tạo video';
+    showToast('Lỗi: '+err.message,'info');
+  } finally { btn.disabled=false; }
+}
+
+async function submitVideoJob(s,falKey){
+  setStat(s.id,'run',5);
+  const r=await fetch('/api/video-submit',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:s.prompt,fal_key:falKey,model:videoModel})});
+  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Submit failed '+r.status);}
+  const {request_id}=await r.json();
+  setStat(s.id,'run',8);
+  return request_id;
+}
+
+async function pollVideoJob(s,requestId,falKey){
+  const maxMs=360000; const start=Date.now(); let prog=8;
+  while(Date.now()-start<maxMs){
+    await new Promise(r=>setTimeout(r,6000));
+    try{
+      const r=await fetch('/api/video-status',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({request_id:requestId,fal_key:falKey,model:videoModel})});
+      const d=await r.json();
+      if(d.status==='COMPLETED'&&d.video_url){
+        s.videoUrl=d.video_url; setStat(s.id,'done',100);
+        const w=document.getElementById('gimg'+s.id);
+        if(w){w.style.display='block';w.innerHTML=`<video src="${d.video_url}" controls loop playsinline style="width:100%;aspect-ratio:16/9;border-radius:9px;border:1px solid var(--b1)"></video>`;}
+        showToast('✅ Cảnh '+s.id+' hoàn thành!','ok'); return;
+      } else if(d.status==='FAILED'){
+        setStat(s.id,'err',0);
+        const w=document.getElementById('gimg'+s.id);
+        if(w){w.style.display='block';w.innerHTML=`<div style="padding:14px;text-align:center;color:var(--red);font-size:12px;background:rgba(220,38,38,.05);border-radius:9px">❌ Cảnh ${s.id}: ${d.error||'Generation failed'}</div>`;}
+        return;
+      }
+      prog=Math.min(prog+4,88);
+      if(d.queue_position!=null){
+        const pill=document.getElementById('gst'+s.id);
+        if(pill){pill.className='spill sp-r';pill.textContent='#'+d.queue_position;}
+        document.getElementById('gpf'+s.id).style.width=prog+'%';
+        document.getElementById('gpc'+s.id).textContent='Queue';
+      } else { setStat(s.id,'run',prog); }
+    } catch(e){ /* tiếp tục poll */ }
+  }
+  setStat(s.id,'err',0);
 }
 
 async function genSceneImage(s, retry=0) {
@@ -1180,13 +1275,15 @@ function showGenResults() {
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">
           <div style="font-size:12px;font-weight:700;color:var(--t2)">Cảnh ${s.id}: ${s.title}</div>
           <div style="display:flex;gap:5px">
-            ${s.imgUrl?`<a href="${s.imgUrl}" target="_blank" class="btn btn-sec" style="padding:4px 10px;font-size:10px;text-decoration:none">⬇ Ảnh</a>`:''}
+            ${s.videoUrl?`<a href="${s.videoUrl}" download="scene-${s.id}.mp4" target="_blank" class="btn btn-sec" style="padding:4px 10px;font-size:10px;text-decoration:none">⬇ Video</a>`:s.imgUrl?`<a href="${s.imgUrl}" target="_blank" class="btn btn-sec" style="padding:4px 10px;font-size:10px;text-decoration:none">⬇ Ảnh</a>`:''}
             <button data-prompt="${s.id}" onclick="copyScenePrompt(this)" class="btn btn-sec" style="padding:4px 10px;font-size:10px">📋 Prompt</button>
           </div>
         </div>
-        ${s.imgUrl
+        ${s.videoUrl
+          ?`<video src="${s.videoUrl}" controls loop playsinline style="width:100%;aspect-ratio:16/9;border-radius:10px;border:1px solid var(--b1)"></video>`
+          :s.imgUrl
           ?`<img src="${s.imgUrl}" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--b1)">`
-          :`<div style="aspect-ratio:16/9;background:var(--s2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--t3)">❌ Không tạo được ảnh cảnh ${s.id}</div>`}
+          :`<div style="aspect-ratio:16/9;background:var(--s2);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--t3)">❌ Không tạo được cảnh ${s.id}</div>`}
       </div>`).join('')}
       <button class="btn btn-sec btn-full" onclick="copyPrompts()" style="margin-top:4px">📋 Copy tất cả prompts (${SCENES.length} cảnh)</button>
     </div>
@@ -1253,9 +1350,10 @@ async function assembleVideo() {
     const canvas=document.createElement('canvas');
     canvas.width=1280; canvas.height=720;
     const ctx=canvas.getContext('2d');
-    if(lblEl) lblEl.textContent='Đang tải ảnh...';
+    if(lblEl) lblEl.textContent='Đang tải assets...';
     if(barEl) barEl.style.width='15%';
-    const imgs=await Promise.all(SCENES.map(s=>loadImg(s.imgUrl)));
+    // Chỉ load ảnh cho scene không có video
+    const imgs=await Promise.all(SCENES.map(s=>s.videoUrl?null:loadImg(s.imgUrl)));
 
     // ── MEDIA RECORDER: video + audio stream ──
     const videoStream=canvas.captureStream(30);
@@ -1284,10 +1382,7 @@ async function assembleVideo() {
         sceneDuration=Math.max(3500, audioBuf.duration*1000+400);
       }
 
-      const drawFrame=()=>{
-        if(img){ctx.drawImage(img,0,0,1280,720);}
-        else{ctx.fillStyle='#1a2340';ctx.fillRect(0,0,1280,720);}
-        // Subtitle bar
+      const drawOverlay=()=>{
         ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,616,1280,104);
         ctx.textAlign='left';
         ctx.fillStyle='rgba(255,255,255,0.55)'; ctx.font='600 15px sans-serif';
@@ -1295,16 +1390,35 @@ async function assembleVideo() {
         ctx.fillStyle='#ffffff'; ctx.font='500 20px sans-serif';
         const nar=s.narration.length>72?s.narration.slice(0,72)+'…':s.narration;
         ctx.fillText('"'+nar+'"',38,672);
-        // Audio indicator
-        if(audioBuf){ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font='13px sans-serif';ctx.fillText('🔊',1230,672);}
       };
-      let t0=Date.now();
-      while(Date.now()-t0<sceneDuration){drawFrame();await new Promise(r=>requestAnimationFrame(r));}
+
+      if(s.videoUrl){
+        // ── Video clip mode: vẽ frame từ video fal.ai ──
+        const vid=document.createElement('video');
+        vid.src=s.videoUrl; vid.muted=true; vid.playsInline=true;
+        await new Promise((res,rej)=>{vid.oncanplaythrough=res;vid.onerror=rej;vid.load();});
+        let playing=true; vid.onended=()=>{playing=false;};
+        await vid.play();
+        while(playing){
+          try{ctx.drawImage(vid,0,0,1280,720);}
+          catch(e){ctx.fillStyle='#1a2340';ctx.fillRect(0,0,1280,720);}
+          drawOverlay();
+          await new Promise(r=>requestAnimationFrame(r));
+        }
+      } else {
+        // ── Fallback: ảnh tĩnh ──
+        const drawFrame=()=>{
+          if(img){ctx.drawImage(img,0,0,1280,720);}
+          else{ctx.fillStyle='#1a2340';ctx.fillRect(0,0,1280,720);}
+          drawOverlay();
+        };
+        let t0=Date.now();
+        while(Date.now()-t0<sceneDuration){drawFrame();await new Promise(r=>requestAnimationFrame(r));}
+      }
       // Fade to black
       let t1=Date.now();
       while(Date.now()-t1<FADE_MS){
-        drawFrame(); const a=(Date.now()-t1)/FADE_MS;
-        ctx.fillStyle=`rgba(0,0,0,${a})`; ctx.fillRect(0,0,1280,720);
+        ctx.fillStyle=`rgba(0,0,0,${(Date.now()-t1)/FADE_MS})`; ctx.fillRect(0,0,1280,720);
         await new Promise(r=>requestAnimationFrame(r));
       }
     }
@@ -1466,6 +1580,7 @@ function showToast(msg,type='info'){
 // Init
 initGrid();
 window.speechSynthesis?.getVoices();
+try{const k=localStorage.getItem('falKey');if(k){const el=document.getElementById('falKeyInput');if(el)el.value=k;}}catch(e){}
 if(window.speechSynthesis)window.speechSynthesis.onvoiceschanged=()=>window.speechSynthesis.getVoices();
 </script>
 </body>

@@ -3,6 +3,8 @@
     { "src": "/api/image", "dest": "/api/image.js" },
     { "src": "/api/tts", "dest": "/api/tts.js" },
     { "src": "/api/gtts", "dest": "/api/gtts.js" },
+    { "src": "/api/video-submit", "dest": "/api/video-submit.js" },
+    { "src": "/api/video-status", "dest": "/api/video-status.js" },
     { "src": "/", "dest": "/index.html" }
   ]
 }
