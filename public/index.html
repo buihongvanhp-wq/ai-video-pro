@@ -496,7 +496,10 @@ textarea.inp{resize:none}
         <div style="font-size:12px;font-weight:700;color:var(--t1)">fal.ai API Key</div>
         <a href="https://fal.ai/dashboard/keys" target="_blank" style="margin-left:auto;font-size:10px;color:var(--blue);font-weight:600;text-decoration:none">Lấy key → fal.ai ($25 free)</a>
       </div>
-      <input class="inp" id="falKeyInput" type="password" placeholder="Dán fal.ai key vào đây... để tạo video thật có chuyển động" style="margin-bottom:9px;font-size:12px" oninput="saveFalKey(this.value)">
+      <div style="display:flex;gap:6px;margin-bottom:9px">
+        <input class="inp" id="falKeyInput" type="password" placeholder="Dán fal.ai key vào đây..." style="flex:1;font-size:12px" oninput="saveFalKey(this.value)">
+        <button class="btn btn-sec" style="padding:9px 12px;font-size:12px;flex-shrink:0" onclick="testFalKey()">🔑 Test</button>
+      </div>
       <div class="lbl" style="margin-bottom:6px">Model</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <span class="style-chip active" id="modelChipWan" onclick="setVideoModel('fal-ai/wan/v2.1/t2v/480p',this)">⚡ Wan 2.1 480p · ~$0.06/clip</span>
@@ -578,6 +581,19 @@ function setVideoModel(m, el) {
   el.classList.add('active');
 }
 function saveFalKey(v){ try{localStorage.setItem('falKey',v);}catch(e){} }
+
+async function testFalKey(){
+  const k=(document.getElementById('falKeyInput')?.value||'').trim()||localStorage.getItem('falKey')||'';
+  if(!k){showToast('Nhập fal.ai key trước!','info');return;}
+  showToast('🔄 Đang kiểm tra key...','info');
+  try{
+    const r=await fetch('/api/video-submit',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({prompt:'a cat',fal_key:k,model:videoModel})});
+    const d=await r.json();
+    if(d.request_id){ showToast('✅ Key hợp lệ! request_id: '+d.request_id.slice(0,12)+'...','ok'); }
+    else{ showToast('❌ Key lỗi: '+(d.error||JSON.stringify(d).slice(0,80)),'info'); }
+  }catch(e){ showToast('❌ Lỗi network: '+e.message,'info'); }
+}
 
 // ═══ TAB NAVIGATION ═══
 function showTab(tab) {
@@ -1153,10 +1169,21 @@ async function startVideoGen(falKey) {
     showToast('📤 Đang submit '+SCENES.length+' jobs lên fal.ai...','info');
     // Submit tất cả song song
     const results=await Promise.allSettled(SCENES.map(s=>submitVideoJob(s,falKey)));
+    let anyOk=false;
     const requestIds=results.map((r,i)=>{
-      if(r.status==='fulfilled') return r.value;
-      setStat(SCENES[i].id,'err',0); return null;
+      if(r.status==='fulfilled'){anyOk=true;return r.value;}
+      const errMsg=r.reason?.message||'Submit failed';
+      setStat(SCENES[i].id,'err',0);
+      const w=document.getElementById('gimg'+SCENES[i].id);
+      if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;text-align:center;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ Cảnh ${SCENES[i].id}: ${errMsg}</div>`;}
+      return null;
     });
+    if(!anyOk){
+      const firstErr=results.find(r=>r.status==='rejected')?.reason?.message||'Xem lỗi trong từng cảnh';
+      showToast('❌ Tất cả jobs thất bại: '+firstErr,'info');
+      document.getElementById('startGenTxt').textContent='🚀 Bắt đầu tạo video';
+      btn.disabled=false; return;
+    }
     document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang xử lý...';
     showToast('⏳ Đang chờ fal.ai render (~1-3 phút)...','info');
     // Poll tất cả song song
@@ -1173,12 +1200,19 @@ async function startVideoGen(falKey) {
 
 async function submitVideoJob(s,falKey){
   setStat(s.id,'run',5);
-  const r=await fetch('/api/video-submit',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({prompt:s.prompt,fal_key:falKey,model:videoModel})});
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error||'Submit failed '+r.status);}
-  const {request_id}=await r.json();
+  let r;
+  try{ r=await fetch('/api/video-submit',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({prompt:s.prompt,fal_key:falKey,model:videoModel})}); }
+  catch(netErr){ throw new Error('Network error: '+netErr.message); }
+  if(!r.ok){
+    let errMsg='HTTP '+r.status;
+    try{ const e=await r.json(); errMsg=e.error||e.detail||errMsg; }catch(_){}
+    throw new Error(errMsg);
+  }
+  const data=await r.json().catch(()=>({}));
+  if(!data.request_id) throw new Error('Không nhận được request_id từ fal.ai');
   setStat(s.id,'run',8);
-  return request_id;
+  return data.request_id;
 }
 
 async function pollVideoJob(s,requestId,falKey){

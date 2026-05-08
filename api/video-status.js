@@ -13,7 +13,11 @@ export default async function handler(req, res) {
     const sRes = await fetch(`${base}/status`, {
       headers: { 'Authorization': `Key ${fal_key}` }
     });
-    if (!sRes.ok) throw new Error('Status check failed: ' + sRes.status);
+    if (!sRes.ok) {
+      const e = await sRes.json().catch(() => ({}));
+      const msg = e.detail?.message || (typeof e.detail === 'string' ? e.detail : null) || e.message || `Status check HTTP ${sRes.status}`;
+      throw new Error(msg);
+    }
     const s = await sRes.json();
 
     if (s.status === 'COMPLETED') {

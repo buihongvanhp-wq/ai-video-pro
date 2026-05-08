@@ -20,9 +20,19 @@ export default async function handler(req, res) {
     });
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
-      throw new Error(err.detail?.message || err.message || 'fal.ai ' + r.status);
+      const msg = err.detail?.message
+        || (typeof err.detail === 'string' ? err.detail : null)
+        || err.message
+        || err.error
+        || `fal.ai HTTP ${r.status}`;
+      res.status(r.status).json({ error: msg });
+      return;
     }
     const data = await r.json();
+    if (!data.request_id) {
+      res.status(502).json({ error: 'fal.ai did not return request_id: ' + JSON.stringify(data).slice(0,200) });
+      return;
+    }
     res.json({ request_id: data.request_id });
   } catch (e) {
     res.status(500).json({ error: e.message });
