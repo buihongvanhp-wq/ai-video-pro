@@ -867,18 +867,49 @@ function autoFillPrompt() {
   if (!appearance) { showToast('Nhập mô tả ngoại hình trước!','info'); return; }
   // Translate common Vietnamese to English keywords
   const trans = {
-    'chú chó':'cute dog','con mèo':'cat','bé gái':'little girl','cô gái':'girl',
-    'chàng trai':'boy','robot':'robot','thỏ':'rabbit','gấu':'bear','cáo':'fox',
+    // Động vật / nhân vật
+    'con chó':'dog','chú chó':'cute dog','cún':'puppy','con mèo':'cat','chú mèo':'cute cat',
+    'con thỏ':'rabbit','chú thỏ':'bunny','con gấu':'bear','gấu bông':'teddy bear',
+    'con cáo':'fox','con sóc':'squirrel','con heo':'pig','con vịt':'duck',
+    'con gà':'chicken','con rồng':'dragon','con khủng long':'dinosaur',
+    'bé gái':'little girl','cô gái':'girl','bé trai':'little boy','chàng trai':'boy',
+    'người phụ nữ':'woman','người đàn ông':'man','em bé':'baby','cụ già':'old man',
+    'robot':'robot','người ngoài hành tinh':'alien','phù thủy':'wizard','hiệp sĩ':'knight',
+    // Màu sắc
     'màu vàng':'yellow','màu trắng':'white','màu nâu':'brown','màu đen':'black',
-    'màu xanh':'blue','mắt to':'big eyes','mắt tròn':'round eyes',
-    'tai dài':'long ears','tai cụp':'floppy ears','đuôi vẫy':'wagging tail',
-    'tạp dề':'apron','kính':'glasses','nón':'hat','áo':'shirt',
-    'dễ thương':'cute','vui vẻ':'cheerful','hiền lành':'gentle',
+    'màu xanh lá':'green','màu xanh dương':'blue','màu xanh':'blue',
+    'màu đỏ':'red','màu hồng':'pink','màu cam':'orange','màu tím':'purple',
+    'màu xám':'gray','màu vàng kim':'golden',
+    // Mắt / tai / đặc điểm
+    'mắt to':'big eyes','mắt tròn':'round eyes','mắt to tròn':'big round eyes',
+    'mắt đen láy':'shiny black eyes','mắt sáng':'bright eyes',
+    'tai dài':'long ears','tai cụp':'floppy ears','tai nhọn':'pointy ears',
+    'đuôi vẫy':'wagging tail','đuôi dài':'long tail','đuôi bông':'fluffy tail',
+    'lông xù':'fluffy fur','lông mềm':'soft fur','lông dài':'long fur',
+    'mũi đỏ':'red nose','má phính':'chubby cheeks','miệng cười':'smiling mouth',
+    // Trang phục / phụ kiện
+    'tạp dề':'apron','kính':'glasses','nón':'hat','mũ':'hat','áo':'shirt',
+    'băng đô':'headband','cà vạt':'tie','khăn quàng':'scarf','găng tay':'gloves',
+    'ba lô':'backpack','túi':'bag','kiếm':'sword','gậy phép':'magic wand',
+    // Tính cách / cảm xúc
+    'dễ thương':'cute','xinh':'cute, pretty','xinh xắn':'adorable',
+    'vui vẻ':'cheerful','hiền lành':'gentle','tinh nghịch':'mischievous',
+    'dũng cảm':'brave','thông minh':'intelligent','nhút nhát':'shy',
+    'mập':'chubby','gầy':'slim','cao':'tall','nhỏ':'small','béo':'pudgy',
+    // Phong cách
+    'phong cách pixar':'Pixar style','hoạt hình':'cartoon','3d':'3D',
+    'siêu dễ thương':'super cute kawaii','anime':'anime style',
   };
   let prompt = appearance;
-  Object.entries(trans).forEach(([vi, en]) => {
+  // Sắp xếp từ dài nhất trước để tránh replace nhầm
+  const sortedTrans = Object.entries(trans).sort((a,b)=>b[0].length-a[0].length);
+  sortedTrans.forEach(([vi, en]) => {
     prompt = prompt.replace(new RegExp(vi, 'gi'), en);
   });
+  // Loại bỏ dấu tiếng Việt còn sót
+  prompt = prompt.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g,'a').replace(/[èéẹẻẽêềếệểễ]/g,'e')
+    .replace(/[ìíịỉĩ]/g,'i').replace(/[òóọỏõôồốộổỗơờớợởỡ]/g,'o')
+    .replace(/[ùúụủũưừứựửữ]/g,'u').replace(/[ỳýỵỷỹ]/g,'y').replace(/[đ]/g,'d');
   const fullPrompt = `${name ? name+', ' : ''}${prompt}, ${currentStyle}, isolated on pure white background, full body character, high quality 3D render, centered, no shadow, no background`;
   document.getElementById('edImgPrompt').value = fullPrompt;
   showToast('⚡ Đã điền prompt!','info');
