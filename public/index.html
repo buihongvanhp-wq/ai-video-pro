@@ -1126,12 +1126,18 @@ function buildScenes(idea, style) {
   const names = CHARS.length>0 ? CHARS.map(c=>c.name).join(' và ') : 'nhân vật';
   const charDesc = CHARS.length>0 ? CHARS.map(c=>`${c.name}(${c.appearance||c.name})`).join(', ') : '';
   const charRef = charDesc ? '[Characters: '+charDesc+'] ' : '';
+  // Tiêu đề Việt Nam cho UI
   const DEFS=[
-    {title:'Mở đầu',   sound:'Nhạc nền nhẹ fade in, tiếng môi trường xung quanh',fx:'Ánh sáng ấm dần, soft vignette',cam:'Wide establishing shot, slow pull focus'},
-    {title:'Khám phá', sound:'Tiếng bước chân, âm thanh tò mò, nhạc adventure nhẹ',fx:'Particle sparkle nhẹ, color saturation tăng',cam:'Medium shot, slow zoom in, pan trái'},
-    {title:'Xung đột', sound:'Nhạc tăng nhịp, hiệu ứng drama, tiếng nhân vật phản ứng',fx:'Quick color grade, handheld shake nhẹ',cam:'Close-up biểu cảm, cut nhanh'},
-    {title:'Cao trào',  sound:'Nhạc climax, tiếng nhân vật nói/hành động, SFX mạnh',fx:'Slow motion khoảnh khắc quan trọng, light burst',cam:'Dynamic angle, dolly zoom, wide+close combo'},
-    {title:'Kết thúc', sound:'Nhạc kết dịu dàng, ambient, fade out êm',fx:'Warm golden grade, soft focus, vignette tối',cam:'Pull back wide shot, tilt up sky'},
+    {title:'Mở đầu',   sound:'Nhạc nền nhẹ fade in, tiếng môi trường xung quanh', fx:'Ánh sáng ấm dần, soft vignette',  cam:'Wide establishing shot, slow pull focus',
+     enTitle:'Opening scene',   enFx:'warm soft golden light, gentle vignette'},
+    {title:'Khám phá', sound:'Tiếng bước chân, âm thanh tò mò, nhạc adventure nhẹ', fx:'Particle sparkle nhẹ, color saturation tăng', cam:'Medium shot, slow zoom in, pan left',
+     enTitle:'Discovery moment', enFx:'magical particle sparkles, vibrant color saturation'},
+    {title:'Xung đột', sound:'Nhạc tăng nhịp, hiệu ứng drama, tiếng nhân vật phản ứng', fx:'Quick color grade, handheld shake nhẹ', cam:'Close-up expression, quick cuts',
+     enTitle:'Conflict scene',   enFx:'dramatic color grade, subtle camera shake'},
+    {title:'Cao trào',  sound:'Nhạc climax, tiếng nhân vật nói/hành động, SFX mạnh', fx:'Slow motion khoảnh khắc quan trọng, light burst', cam:'Dynamic angle, dolly zoom, wide+close combo',
+     enTitle:'Climax moment',    enFx:'epic slow motion, god rays light burst'},
+    {title:'Kết thúc', sound:'Nhạc kết dịu dàng, ambient, fade out êm', fx:'Warm golden grade, soft focus, vignette tối', cam:'Pull back wide shot, tilt up sky',
+     enTitle:'Ending resolution', enFx:'warm golden hour color grade, soft bokeh, dark vignette'},
   ];
   const NARS=[
     `Và câu chuyện bắt đầu — ${names} bước vào một ngày mới đầy bất ngờ...`,
@@ -1140,10 +1146,16 @@ function buildScenes(idea, style) {
     `Đây là khoảnh khắc quyết định — ${names} dồn hết sức lực và can đảm.`,
     `Và cuối cùng, ${names} nhận ra: hành trình này đã thay đổi tất cả mãi mãi.`,
   ];
+  // ideaEn: chuyển idea sang mô tả ngắn gọn tiếng Anh để dùng trong video prompt
+  const ideaEn = (idea||'adventure story').replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g,'a')
+    .replace(/[èéẹẻẽêềếệểễ]/g,'e').replace(/[ìíịỉĩ]/g,'i')
+    .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g,'o').replace(/[ùúụủũưừứựửữ]/g,'u')
+    .replace(/[ỳýỵỷỹ]/g,'y').replace(/[đ]/g,'d').replace(/[^a-zA-Z0-9\s,.\-]/g,' ').trim().slice(0,120);
   return DEFS.map((d,i)=>({
     id:i+1, title:d.title,
     narration:NARS[i], sound:d.sound, fx:d.fx, camera:d.cam, duration:'3–4s',
-    prompt:`${charRef}${style||'3D Pixar cartoon'} style, ${idea||'adventure scene'}, ${d.title} — ${d.cam}, ${d.fx}, cinematic lighting, 4k, high detail, professional render`,
+    // Prompt THUẦN TIẾNG ANH cho fal.ai
+    prompt:`${style||'3D Pixar cartoon'} style, ${ideaEn}, ${d.enTitle}, ${d.cam}, ${d.enFx}, cinematic lighting, 4K ultra detail, professional render${charRef?', '+charRef.replace(/[\[\]]/g,''):''}`,
   }));
 }
 
