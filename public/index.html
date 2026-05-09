@@ -1336,34 +1336,55 @@ async function submitVideoJob(s,falKey){
 }
 
 async function pollVideoJob(s,requestId,falKey){
-  const maxMs=360000; const start=Date.now(); let prog=8;
+  const maxMs=720000; // 12 phút — Wan 2.1 queue có thể dài
+  const start=Date.now(); let prog=8; let lastStatus='';
   while(Date.now()-start<maxMs){
-    await new Promise(r=>setTimeout(r,6000));
+    await new Promise(r=>setTimeout(r,8000)); // poll mỗi 8s
     try{
       const r=await fetch('/api/video-status',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({request_id:requestId,fal_key:falKey,model:videoModel})});
       const d=await r.json();
+      lastStatus=d.status||lastStatus;
+
       if(d.status==='COMPLETED'&&d.video_url){
         s.videoUrl=d.video_url; setStat(s.id,'done',100);
         const w=document.getElementById('gimg'+s.id);
         if(w){w.style.display='block';w.innerHTML=`<video src="${d.video_url}" controls loop playsinline style="width:100%;aspect-ratio:16/9;border-radius:9px;border:1px solid var(--b1)"></video>`;}
         showToast('✅ Cảnh '+s.id+' hoàn thành!','ok'); return;
+
       } else if(d.status==='FAILED'){
-        setStat(s.id,'err',0);
+        const errMsg=d.error||d.detail||'Generation failed on fal.ai';
+        s.error=errMsg; setStat(s.id,'err',0);
         const w=document.getElementById('gimg'+s.id);
-        if(w){w.style.display='block';w.innerHTML=`<div style="padding:14px;text-align:center;color:var(--red);font-size:12px;background:rgba(220,38,38,.05);border-radius:9px">❌ Cảnh ${s.id}: ${d.error||'Generation failed'}</div>`;}
+        if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ fal.ai FAILED: ${errMsg}</div>`;}
+        showToast('❌ Cảnh '+s.id+' thất bại: '+errMsg,'info');
         return;
       }
-      prog=Math.min(prog+4,88);
+
+      // Còn đang xử lý
+      prog=Math.min(prog+2,92);
+      const elapsed=Math.round((Date.now()-start)/1000);
+      const pill=document.getElementById('gst'+s.id);
       if(d.queue_position!=null){
-        const pill=document.getElementById('gst'+s.id);
-        if(pill){pill.className='spill sp-r';pill.textContent='#'+d.queue_position;}
+        if(pill){pill.className='spill sp-r';pill.textContent='Queue #'+d.queue_position;}
         document.getElementById('gpf'+s.id).style.width=prog+'%';
-        document.getElementById('gpc'+s.id).textContent='Queue';
-      } else { setStat(s.id,'run',prog); }
-    } catch(e){ /* tiếp tục poll */ }
+        document.getElementById('gpc'+s.id).textContent=elapsed+'s';
+      } else {
+        setStat(s.id,'run',prog);
+        document.getElementById('gpc'+s.id).textContent=elapsed+'s';
+        if(pill){pill.className='spill sp-r';pill.textContent='Rendering';}
+      }
+    } catch(pollErr){
+      // Lỗi network tạm thời — tiếp tục poll
+      console.warn('Poll error cảnh',s.id,pollErr.message);
+    }
   }
+  // Timeout
+  s.error='Timeout sau 12 phút';
   setStat(s.id,'err',0);
+  const w=document.getElementById('gimg'+s.id);
+  if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px">⏱️ Cảnh ${s.id}: Timeout 12 phút. fal.ai queue có thể bận. Thử lại sau.</div>`;}
+  showToast('⏱️ Cảnh '+s.id+' timeout — thử tạo lại sau!','info');
 }
 
 async function startI2VGen() {
@@ -1471,7 +1492,7 @@ function showGenResults() {
         </div>
         ${s.videoUrl
           ?`<video src="${s.videoUrl}" controls loop playsinline style="width:100%;aspect-ratio:16/9;border-radius:10px;border:1px solid var(--b1)"></video>`
-          :`<div style="aspect-ratio:16/9;background:var(--s2);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--red);font-size:12px">❌ Cảnh ${s.id} thất bại</div>`}
+          :`<div style="aspect-ratio:16/9;background:rgba(220,38,38,.04);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;padding:12px;text-align:center"><div style="color:var(--red);font-size:13px">❌ Cảnh ${s.id} thất bại</div>${s.error?`<div style="font-size:10px;color:var(--t3);word-break:break-all;max-width:90%">${s.error}</div>`:''}</div>`}
       </div>`).join('')}
     </div>
   </div>`;
