@@ -533,8 +533,8 @@ textarea.inp{resize:none}
       <div style="padding:11px 15px;border-bottom:1px solid var(--b1);background:var(--s2)">
         <div class="lbl" style="margin-bottom:6px">T2V Model</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <span class="style-chip active" id="modelChipWan" onclick="setVideoModel('fal-ai/wan/v2.1/t2v/480p',this)">⚡ Wan 2.1 480p · ~$0.06/clip</span>
-          <span class="style-chip" id="modelChipKling" onclick="setVideoModel('fal-ai/kling-video/v1.6/standard/text-to-video',this)">🎬 Kling 1.6 · ~$0.28/clip</span>
+          <span class="style-chip" id="modelChipWan" onclick="setVideoModel('fal-ai/wan/v2.1/t2v/480p',this)">⚡ Wan 2.1 · ~$0.06/clip</span>
+          <span class="style-chip active" id="modelChipKling" onclick="setVideoModel('fal-ai/kling-video/v1.6/standard/text-to-video',this)">🎬 Kling 1.6 · ~$0.28/clip ✓ Khuyên dùng</span>
         </div>
         <div style="font-size:10px;color:var(--t3);margin-top:5px">Cần fal.ai key để tạo video chuyển động thật</div>
       </div>
@@ -641,7 +641,7 @@ let narText = '';
 let audioPlaying = false;
 let stepsDone = { chars:false, ideas:false, script:false };
 let voiceProvider = 'google'; // 'google' | 'eleven'
-let videoModel = 'fal-ai/wan/v2.1/t2v/480p';
+let videoModel = 'fal-ai/kling-video/v1.6/standard/text-to-video';
 let i2vModel = 'fal-ai/kling-video/v1.6/standard/image-to-video';
 let genMode = 't2v'; // 't2v' | 'i2v'
 let charImageDataUrl = null;
@@ -1317,31 +1317,32 @@ async function startVideoGen(falKey) {
   document.getElementById('genResults').style.display='none';
   prefillGenTable();
   try {
-    showToast('📤 Đang submit '+SCENES.length+' jobs lên fal.ai...','info');
-    // Submit tất cả song song
-    const results=await Promise.allSettled(SCENES.map(s=>submitVideoJob(s,falKey)));
-    let anyOk=false;
-    const requestIds=results.map((r,i)=>{
-      if(r.status==='fulfilled'){anyOk=true;return r.value;}
-      const errMsg=r.reason?.message||'Submit failed';
-      setStat(SCENES[i].id,'err',0);
-      const w=document.getElementById('gimg'+SCENES[i].id);
-      if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;text-align:center;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ Cảnh ${SCENES[i].id}: ${errMsg}</div>`;}
-      return null;
-    });
-    if(!anyOk){
-      const firstErr=results.find(r=>r.status==='rejected')?.reason?.message||'Xem lỗi trong từng cảnh';
-      showToast('❌ Tất cả jobs thất bại: '+firstErr,'info');
-      document.getElementById('startGenTxt').textContent='🚀 Bắt đầu tạo video';
-      btn.disabled=false; return;
+    showToast('📤 Submit tuần tự '+SCENES.length+' cảnh lên fal.ai...','info');
+    // Submit + poll TUẦN TỰ từng cảnh (tránh queue tắc nghẽn)
+    let doneCount=0;
+    for(let i=0;i<SCENES.length;i++){
+      const s=SCENES[i];
+      document.getElementById('startGenTxt').innerHTML=`<span class="spin"></span> Cảnh ${s.id}/${SCENES.length}...`;
+      let reqId=null;
+      try{
+        reqId=await submitVideoJob(s,falKey);
+        showToast(`✅ Cảnh ${s.id} đã submit — đang chờ render...`,'info');
+      }catch(e){
+        const errMsg=e.message||'Submit failed';
+        setStat(s.id,'err',0);
+        const w=document.getElementById('gimg'+s.id);
+        if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ Cảnh ${s.id}: ${errMsg}</div>`;}
+        continue;
+      }
+      if(reqId){
+        await pollVideoJob(s,reqId,falKey);
+        if(s.videoUrl) doneCount++;
+      }
     }
-    document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang xử lý...';
-    showToast('⏳ Đang chờ fal.ai render (~1-3 phút)...','info');
-    // Poll tất cả song song
-    await Promise.allSettled(SCENES.map((s,i)=>requestIds[i]?pollVideoJob(s,requestIds[i],falKey):null));
     showGenResults();
     document.getElementById('startGenTxt').textContent='🔄 Tạo lại';
-    showToast('🎬 Video đã tạo xong!','ok');
+    if(doneCount>0) showToast(`🎬 ${doneCount}/${SCENES.length} video hoàn thành!`,'ok');
+    else showToast('❌ Không có video nào hoàn thành. Thử lại!','info');
     document.getElementById('genResults').scrollIntoView({behavior:'smooth'});
   } catch(err) {
     document.getElementById('startGenTxt').textContent='🚀 Bắt đầu tạo video';
