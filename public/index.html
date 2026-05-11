@@ -1398,37 +1398,34 @@ async function submitVideoJob(s,falKey){
 async function pollVideoJob(s,requestId,falKey){
   const maxMs=900000; // 15 phút tối đa
   const start=Date.now(); let prog=8;
-  // Gọi fal.ai TRỰC TIẾP từ browser (không qua Vercel) → tránh Vercel 10s timeout
-  const statusUrl=`https://queue.fal.run/${videoModel}/requests/${requestId}/status`;
-  const resultUrl=`https://queue.fal.run/${videoModel}/requests/${requestId}`;
-  const headers={'Authorization':'Key '+falKey,'Content-Type':'application/json'};
+  // Dùng Vercel proxy /api/video-status (tránh CORS khi gọi queue.fal.run trực tiếp từ browser)
 
   while(Date.now()-start<maxMs){
     await new Promise(r=>setTimeout(r,5000)); // poll mỗi 5s
     try{
-      const sr=await fetch(statusUrl,{headers});
-      if(!sr.ok){ console.warn('Status HTTP',sr.status); continue; }
+      const sr=await fetch('/api/video-status',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({request_id:requestId,fal_key:falKey,model:videoModel})});
+      if(!sr.ok){
+        const etxt=await sr.text().catch(()=>'');
+        console.warn('Status HTTP',sr.status,etxt.slice(0,120)); continue;
+      }
       const d=await sr.json();
       const elapsed=Math.round((Date.now()-start)/1000);
 
       if(d.status==='COMPLETED'){
-        // Lấy kết quả
-        const rr=await fetch(resultUrl,{headers});
-        const result=await rr.json();
-        const videoUrl=result.video?.url||result.videos?.[0]?.url||result.video_url||result.url;
+        const videoUrl=d.video_url;
         if(videoUrl){
           s.videoUrl=videoUrl; setStat(s.id,'done',100);
           const w=document.getElementById('gimg'+s.id);
           if(w){w.style.display='block';w.innerHTML=`<video src="${videoUrl}" controls loop playsinline style="width:100%;aspect-ratio:16/9;border-radius:9px;border:1px solid var(--b1)"></video>`;}
           showToast('✅ Cảnh '+s.id+' hoàn thành ('+elapsed+'s)!','ok'); return;
         } else {
-          // COMPLETED nhưng không có URL → log để debug
-          console.error('COMPLETED nhưng không có videoUrl. Result:',JSON.stringify(result).slice(0,300));
-          s.error='COMPLETED nhưng không tìm thấy video URL. Keys: '+Object.keys(result).join(',');
+          console.error('COMPLETED nhưng không có video_url. Response:',JSON.stringify(d).slice(0,300));
+          s.error='COMPLETED nhưng không tìm thấy video URL';
           setStat(s.id,'err',0); return;
         }
       } else if(d.status==='FAILED'){
-        const errMsg=d.error||d.detail||'Generation failed';
+        const errMsg=d.error||'Generation failed';
         s.error=errMsg; setStat(s.id,'err',0);
         const w=document.getElementById('gimg'+s.id);
         if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ FAILED: ${errMsg}</div>`;}
