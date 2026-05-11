@@ -1396,55 +1396,61 @@ async function submitVideoJob(s,falKey){
 }
 
 async function pollVideoJob(s,requestId,falKey){
-  const maxMs=720000; // 12 phút — Wan 2.1 queue có thể dài
-  const start=Date.now(); let prog=8; let lastStatus='';
+  const maxMs=900000; // 15 phút tối đa
+  const start=Date.now(); let prog=8;
+  // Gọi fal.ai TRỰC TIẾP từ browser (không qua Vercel) → tránh Vercel 10s timeout
+  const statusUrl=`https://queue.fal.run/${videoModel}/requests/${requestId}/status`;
+  const resultUrl=`https://queue.fal.run/${videoModel}/requests/${requestId}`;
+  const headers={'Authorization':'Key '+falKey,'Content-Type':'application/json'};
+
   while(Date.now()-start<maxMs){
-    await new Promise(r=>setTimeout(r,8000)); // poll mỗi 8s
+    await new Promise(r=>setTimeout(r,5000)); // poll mỗi 5s
     try{
-      const r=await fetch('/api/video-status',{method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({request_id:requestId,fal_key:falKey,model:videoModel})});
-      const d=await r.json();
-      lastStatus=d.status||lastStatus;
+      const sr=await fetch(statusUrl,{headers});
+      if(!sr.ok){ console.warn('Status HTTP',sr.status); continue; }
+      const d=await sr.json();
+      const elapsed=Math.round((Date.now()-start)/1000);
 
-      if(d.status==='COMPLETED'&&d.video_url){
-        s.videoUrl=d.video_url; setStat(s.id,'done',100);
-        const w=document.getElementById('gimg'+s.id);
-        if(w){w.style.display='block';w.innerHTML=`<video src="${d.video_url}" controls loop playsinline style="width:100%;aspect-ratio:16/9;border-radius:9px;border:1px solid var(--b1)"></video>`;}
-        showToast('✅ Cảnh '+s.id+' hoàn thành!','ok'); return;
-
+      if(d.status==='COMPLETED'){
+        // Lấy kết quả
+        const rr=await fetch(resultUrl,{headers});
+        const result=await rr.json();
+        const videoUrl=result.video?.url||result.videos?.[0]?.url||result.video_url||result.url;
+        if(videoUrl){
+          s.videoUrl=videoUrl; setStat(s.id,'done',100);
+          const w=document.getElementById('gimg'+s.id);
+          if(w){w.style.display='block';w.innerHTML=`<video src="${videoUrl}" controls loop playsinline style="width:100%;aspect-ratio:16/9;border-radius:9px;border:1px solid var(--b1)"></video>`;}
+          showToast('✅ Cảnh '+s.id+' hoàn thành ('+elapsed+'s)!','ok'); return;
+        } else {
+          // COMPLETED nhưng không có URL → log để debug
+          console.error('COMPLETED nhưng không có videoUrl. Result:',JSON.stringify(result).slice(0,300));
+          s.error='COMPLETED nhưng không tìm thấy video URL. Keys: '+Object.keys(result).join(',');
+          setStat(s.id,'err',0); return;
+        }
       } else if(d.status==='FAILED'){
-        const errMsg=d.error||d.detail||'Generation failed on fal.ai';
+        const errMsg=d.error||d.detail||'Generation failed';
         s.error=errMsg; setStat(s.id,'err',0);
         const w=document.getElementById('gimg'+s.id);
-        if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ fal.ai FAILED: ${errMsg}</div>`;}
-        showToast('❌ Cảnh '+s.id+' thất bại: '+errMsg,'info');
-        return;
+        if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ FAILED: ${errMsg}</div>`;}
+        showToast('❌ Cảnh '+s.id+': '+errMsg,'info'); return;
       }
 
-      // Còn đang xử lý
-      prog=Math.min(prog+2,92);
-      const elapsed=Math.round((Date.now()-start)/1000);
+      // IN_QUEUE hoặc IN_PROGRESS
+      prog=Math.min(prog+1,92);
       const pill=document.getElementById('gst'+s.id);
       if(d.queue_position!=null){
-        if(pill){pill.className='spill sp-r';pill.textContent='Queue #'+d.queue_position;}
-        document.getElementById('gpf'+s.id).style.width=prog+'%';
-        document.getElementById('gpc'+s.id).textContent=elapsed+'s';
+        if(pill){pill.className='spill sp-r';pill.textContent='Q#'+d.queue_position;}
       } else {
-        setStat(s.id,'run',prog);
-        document.getElementById('gpc'+s.id).textContent=elapsed+'s';
-        if(pill){pill.className='spill sp-r';pill.textContent='Rendering';}
+        if(pill){pill.className='spill sp-r';pill.textContent='Render';}
       }
-    } catch(pollErr){
-      // Lỗi network tạm thời — tiếp tục poll
-      console.warn('Poll error cảnh',s.id,pollErr.message);
-    }
+      document.getElementById('gpf'+s.id).style.width=prog+'%';
+      document.getElementById('gpc'+s.id).textContent=elapsed+'s';
+    }catch(e){ console.warn('Poll lỗi cảnh',s.id,e.message); }
   }
-  // Timeout
-  s.error='Timeout sau 12 phút';
+  s.error='Timeout 15 phút';
   setStat(s.id,'err',0);
   const w=document.getElementById('gimg'+s.id);
-  if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px">⏱️ Cảnh ${s.id}: Timeout 12 phút. fal.ai queue có thể bận. Thử lại sau.</div>`;}
-  showToast('⏱️ Cảnh '+s.id+' timeout — thử tạo lại sau!','info');
+  if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px">⏱️ Timeout 15 phút — fal.ai queue bận. Thử lại sau.</div>`;}
 }
 
 async function startI2VGen() {
