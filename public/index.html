@@ -1317,28 +1317,31 @@ async function startVideoGen(falKey) {
   document.getElementById('genResults').style.display='none';
   prefillGenTable();
   try {
-    showToast('📤 Submit tuần tự '+SCENES.length+' cảnh lên fal.ai...','info');
-    // Submit + poll TUẦN TỰ từng cảnh (tránh queue tắc nghẽn)
-    let doneCount=0;
-    for(let i=0;i<SCENES.length;i++){
-      const s=SCENES[i];
-      document.getElementById('startGenTxt').innerHTML=`<span class="spin"></span> Cảnh ${s.id}/${SCENES.length}...`;
-      let reqId=null;
-      try{
-        reqId=await submitVideoJob(s,falKey);
-        showToast(`✅ Cảnh ${s.id} đã submit — đang chờ render...`,'info');
-      }catch(e){
-        const errMsg=e.message||'Submit failed';
-        setStat(s.id,'err',0);
-        const w=document.getElementById('gimg'+s.id);
-        if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ Cảnh ${s.id}: ${errMsg}</div>`;}
-        continue;
-      }
-      if(reqId){
-        await pollVideoJob(s,reqId,falKey);
-        if(s.videoUrl) doneCount++;
-      }
+    // Bước 1: Submit TẤT CẢ song song → vào queue cùng lúc
+    showToast('📤 Submit '+SCENES.length+' cảnh song song lên fal.ai...','info');
+    document.getElementById('startGenTxt').innerHTML='<span class="spin"></span> Đang submit...';
+    const submitResults = await Promise.allSettled(SCENES.map(s=>submitVideoJob(s,falKey)));
+    const jobs = submitResults.map((r,i)=>{
+      if(r.status==='fulfilled') return {scene:SCENES[i], reqId:r.value};
+      const errMsg=r.reason?.message||'Submit failed';
+      setStat(SCENES[i].id,'err',0);
+      const w=document.getElementById('gimg'+SCENES[i].id);
+      if(w){w.style.display='block';w.innerHTML=`<div style="padding:12px;color:var(--red);font-size:11px;background:rgba(220,38,38,.05);border-radius:9px;word-break:break-all">❌ ${errMsg}</div>`;}
+      return null;
+    }).filter(Boolean);
+
+    if(!jobs.length){
+      showToast('❌ Tất cả submit thất bại','info');
+      document.getElementById('startGenTxt').textContent='🚀 Bắt đầu tạo video';
+      btn.disabled=false; return;
     }
+    showToast(`⏳ ${jobs.length} cảnh đang render song song — đợi kết quả...`,'info');
+    document.getElementById('startGenTxt').innerHTML=`<span class="spin"></span> Đang render ${jobs.length} cảnh...`;
+
+    // Bước 2: Poll TẤT CẢ song song → nhận kết quả khi xong
+    await Promise.allSettled(jobs.map(j=>pollVideoJob(j.scene,j.reqId,falKey)));
+
+    const doneCount=SCENES.filter(s=>s.videoUrl).length;
     showGenResults();
     document.getElementById('startGenTxt').textContent='🔄 Tạo lại';
     if(doneCount>0) showToast(`🎬 ${doneCount}/${SCENES.length} video hoàn thành!`,'ok');
