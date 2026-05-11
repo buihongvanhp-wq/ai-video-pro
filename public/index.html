@@ -861,55 +861,80 @@ function copyPromptText() {
     .catch(()=>{const e=document.createElement('textarea');e.value=prompt;document.body.appendChild(e);e.select();document.execCommand('copy');document.body.removeChild(e);showToast('📋 Đã copy!','ok');});
 }
 
+// Hàm strip dấu tiếng Việt → ASCII
+function stripVi(s){
+  return s.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g,'a').replace(/[ÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴ]/g,'A')
+   .replace(/[èéẹẻẽêềếệểễ]/g,'e').replace(/[ÈÉẸẺẼÊỀẾỆỂỄ]/g,'E')
+   .replace(/[ìíịỉĩ]/g,'i').replace(/[ÌÍỊỈĨ]/g,'I')
+   .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g,'o').replace(/[ÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠ]/g,'O')
+   .replace(/[ùúụủũưừứựửữ]/g,'u').replace(/[ÙÚỤỦŨƯỪỨỰỬỮ]/g,'U')
+   .replace(/[ỳýỵỷỹ]/g,'y').replace(/[ỲÝỴỶỸ]/g,'Y')
+   .replace(/[đ]/g,'d').replace(/[Đ]/g,'D');
+}
+
 function autoFillPrompt() {
   const name = document.getElementById('edName').value.trim();
   const appearance = document.getElementById('edAppearance').value.trim();
   if (!appearance) { showToast('Nhập mô tả ngoại hình trước!','info'); return; }
-  // Translate common Vietnamese to English keywords
+
+  // Dict dùng KEY ASCII (sau khi strip dấu) → dễ match hơn
   const trans = {
-    // Động vật / nhân vật
-    'con chó':'dog','chú chó':'cute dog','cún':'puppy','con mèo':'cat','chú mèo':'cute cat',
-    'con thỏ':'rabbit','chú thỏ':'bunny','con gấu':'bear','gấu bông':'teddy bear',
-    'con cáo':'fox','con sóc':'squirrel','con heo':'pig','con vịt':'duck',
-    'con gà':'chicken','con rồng':'dragon','con khủng long':'dinosaur',
-    'bé gái':'little girl','cô gái':'girl','bé trai':'little boy','chàng trai':'boy',
-    'người phụ nữ':'woman','người đàn ông':'man','em bé':'baby','cụ già':'old man',
-    'robot':'robot','người ngoài hành tinh':'alien','phù thủy':'wizard','hiệp sĩ':'knight',
-    // Màu sắc
-    'màu vàng':'yellow','màu trắng':'white','màu nâu':'brown','màu đen':'black',
-    'màu xanh lá':'green','màu xanh dương':'blue','màu xanh':'blue',
-    'màu đỏ':'red','màu hồng':'pink','màu cam':'orange','màu tím':'purple',
-    'màu xám':'gray','màu vàng kim':'golden',
+    // Động vật
+    'con cho':'dog','chu cho':'cute dog','cun':'puppy',
+    'con meo':'cat','chu meo':'cute cat','meo':'cat',
+    'con tho':'rabbit','chu tho':'bunny','tho':'rabbit',
+    'con gau':'bear','gau bong':'teddy bear','gau':'bear',
+    'con cao':'fox','cao':'fox',
+    'con soc':'squirrel','con heo':'pig','heo':'pig',
+    'con vit':'duck','vit':'duck',
+    'con ga':'chicken','ga':'chicken',
+    'con rong':'dragon','rong':'dragon',
+    'khung long':'dinosaur',
+    // Nhân vật người
+    'be gai':'little girl','co gai':'girl',
+    'be trai':'little boy','chang trai':'boy',
+    'nguoi phu nu':'woman','nguoi dan ong':'man',
+    'em be':'baby','cu gia':'old man',
+    'nguoi ngoai hanh tinh':'alien',
+    'phu thuy':'wizard','hiep si':'knight',
+    'sieu nhan':'superhero',
+    // Màu
+    'mau vang kim':'golden','mau vang':'yellow',
+    'mau trang':'white','mau nau':'brown','mau den':'black',
+    'mau xanh la':'green','mau xanh duong':'blue','mau xanh':'blue',
+    'mau do':'red','mau hong':'pink','mau cam':'orange',
+    'mau tim':'purple','mau xam':'gray',
     // Mắt / tai / đặc điểm
-    'mắt to':'big eyes','mắt tròn':'round eyes','mắt to tròn':'big round eyes',
-    'mắt đen láy':'shiny black eyes','mắt sáng':'bright eyes',
-    'tai dài':'long ears','tai cụp':'floppy ears','tai nhọn':'pointy ears',
-    'đuôi vẫy':'wagging tail','đuôi dài':'long tail','đuôi bông':'fluffy tail',
-    'lông xù':'fluffy fur','lông mềm':'soft fur','lông dài':'long fur',
-    'mũi đỏ':'red nose','má phính':'chubby cheeks','miệng cười':'smiling mouth',
-    // Trang phục / phụ kiện
-    'tạp dề':'apron','kính':'glasses','nón':'hat','mũ':'hat','áo':'shirt',
-    'băng đô':'headband','cà vạt':'tie','khăn quàng':'scarf','găng tay':'gloves',
-    'ba lô':'backpack','túi':'bag','kiếm':'sword','gậy phép':'magic wand',
-    // Tính cách / cảm xúc
-    'dễ thương':'cute','xinh':'cute, pretty','xinh xắn':'adorable',
-    'vui vẻ':'cheerful','hiền lành':'gentle','tinh nghịch':'mischievous',
-    'dũng cảm':'brave','thông minh':'intelligent','nhút nhát':'shy',
-    'mập':'chubby','gầy':'slim','cao':'tall','nhỏ':'small','béo':'pudgy',
+    'mat to tron':'big round eyes','mat den lay':'shiny black eyes',
+    'mat to':'big eyes','mat tron':'round eyes','mat sang':'bright eyes',
+    'tai cup':'floppy ears','tai dai':'long ears','tai nhon':'pointy ears',
+    'duoi vay':'wagging tail','duoi dai':'long tail','duoi bong':'fluffy tail',
+    'long xu':'fluffy fur','long mem':'soft fur','long dai':'long fur',
+    'mui do':'red nose','ma phinh':'chubby cheeks','mieng cuoi':'smiling mouth',
+    // Trang phục
+    'tap de':'apron','kinh':'glasses','bang do':'headband',
+    'ca vat':'tie','khan quang':'scarf','gang tay':'gloves',
+    'ba lo':'backpack','gay phep':'magic wand','kiem':'sword',
+    'non':'hat','mu':'hat','ao':'shirt','quan':'pants',
+    // Tính cách
+    'sieu de thuong':'super cute kawaii','xinh xan':'adorable',
+    'de thuong':'cute','xinh':'cute','vui ve':'cheerful',
+    'hien lanh':'gentle','tinh nghich':'mischievous',
+    'dung cam':'brave','thong minh':'intelligent','nhut nhat':'shy',
+    'map':'chubby','gay':'slim','beo':'pudgy','nho':'small','cao':'tall',
     // Phong cách
-    'phong cách pixar':'Pixar style','hoạt hình':'cartoon','3d':'3D',
-    'siêu dễ thương':'super cute kawaii','anime':'anime style',
+    'phong cach pixar':'Pixar style','hoat hinh':'cartoon',
+    'anime':'anime style',
   };
-  let prompt = appearance;
-  // Sắp xếp từ dài nhất trước để tránh replace nhầm
-  const sortedTrans = Object.entries(trans).sort((a,b)=>b[0].length-a[0].length);
-  sortedTrans.forEach(([vi, en]) => {
-    prompt = prompt.replace(new RegExp(vi, 'gi'), en);
+
+  // Bước 1: strip dấu toàn bộ input → ASCII
+  let prompt = stripVi(appearance).toLowerCase();
+
+  // Bước 2: apply dict (sort dài trước, tránh replace nhầm)
+  const sorted = Object.entries(trans).sort((a,b)=>b[0].length-a[0].length);
+  sorted.forEach(([ascii, en]) => {
+    prompt = prompt.replace(new RegExp('\\b'+ascii+'\\b', 'gi'), en);
   });
-  // Loại bỏ dấu tiếng Việt còn sót
-  prompt = prompt.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g,'a').replace(/[èéẹẻẽêềếệểễ]/g,'e')
-    .replace(/[ìíịỉĩ]/g,'i').replace(/[òóọỏõôồốộổỗơờớợởỡ]/g,'o')
-    .replace(/[ùúụủũưừứựửữ]/g,'u').replace(/[ỳýỵỷỹ]/g,'y').replace(/[đ]/g,'d');
   const fullPrompt = `${name ? name+', ' : ''}${prompt}, ${currentStyle}, isolated on pure white background, full body character, high quality 3D render, centered, no shadow, no background`;
   document.getElementById('edImgPrompt').value = fullPrompt;
   showToast('⚡ Đã điền prompt!','info');
