@@ -1021,17 +1021,21 @@ async function genCharImage3D(seed) {
   const existImg = document.getElementById('charEditorImg');
   existImg.style.display = 'block';
   existImg.style.opacity = '0.25';
-  const imgUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=512&height=512&seed=${currentSeed}&nologo=true&model=turbo`;
+  // Dùng proxy /api/image (tránh CORS khi gọi Pollinations.ai trực tiếp từ browser)
+  const imgUrl = `/api/image?prompt=${encodeURIComponent(prompt)}&width=512&height=512&seed=${currentSeed}&model=turbo`;
   showToast('🎨 Đang tạo ảnh AI (15-60 giây)...', 'ok');
   try {
-    await new Promise((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error('Quá thời gian, thử lại!')), 90000);
-      const img = new Image();
-      img.onload = () => { clearTimeout(t); resolve(); };
-      img.onerror = () => { clearTimeout(t); reject(new Error('Không tải được ảnh')); };
-      img.src = imgUrl;
+    // Fetch qua proxy → chuyển sang data URL (dùng được cho I2V)
+    const resp = await fetch(imgUrl);
+    if (!resp.ok) {
+      const e = await resp.json().catch(() => ({}));
+      throw new Error(e.error || 'Lỗi tạo ảnh: ' + resp.status);
+    }
+    const blob = await resp.blob();
+    const dataUrl = await new Promise((res, rej) => {
+      const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob);
     });
-    existImg.src = imgUrl;
+    existImg.src = dataUrl;
     existImg.style.opacity = '1';
     btnTxt.textContent = '🔄 Tạo lại';
     showToast('✅ Ảnh đã tạo xong!', 'ok');
